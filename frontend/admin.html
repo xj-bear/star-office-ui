@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>后台管理 - Star Office UI</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            background: #f0f2f5;
+            color: #333;
+        }
+
+        .header {
+            background: #1a1a2e;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .container {
+            display: flex;
+            padding: 20px;
+            align-items: flex-start;
+            gap: 20px;
+        }
+
+        /* Map Section */
+        .map-section {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .map-container {
+            position: relative;
+            border: 4px solid #ccc;
+            background: #fff;
+            width: 100%;
+            max-width: 1200px;
+            cursor: crosshair;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .map-container img {
+            width: 100%;
+            display: block;
+        }
+
+        .pin {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: #e94560;
+            border-radius: 50%;
+            border: 2px solid white;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            transition: all 0.2s;
+        }
+
+        .pin-label {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            transform: translate(-50%, -24px);
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        /* Controls Section */
+        .controls-section {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            overflow-y: auto;
+            max-height: 85vh;
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .coord-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .coord-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+        }
+
+        .coord-item.active {
+            border-color: #e94560;
+            background: #ffebee;
+        }
+
+        .coord-item strong {
+            display: block;
+            margin-bottom: 4px;
+            color: #1a1a2e;
+        }
+
+        .coord-values {
+            font-family: monospace;
+            color: #666;
+        }
+
+        .upload-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 5px;
+        }
+
+        input[type="file"] {
+            font-size: 12px;
+        }
+
+        button {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        button.btn-upload {
+            background: #2196f3;
+            padding: 6px 10px;
+            width: auto;
+            font-weight: normal;
+        }
+
+        button.btn-upload:hover {
+            background: #1976d2;
+        }
+
+        #save-status {
+            margin-top: 10px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #333;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+
+        .instructions {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 15px;
+            background: #e3f2fd;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #2196f3;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <div><strong>🐾 Star Office UI</strong> 后台配置中心</div>
+        <a href="/"
+            style="color: white; text-decoration: none; border: 1px solid white; padding: 4px 10px; border-radius: 4px; font-size: 14px;">返回大图</a>
+    </div>
+
+    <div class="container">
+        <!-- 坐标地图区域 -->
+        <div class="map-section">
+            <div class="instructions">
+                <strong>💡 如何配置地图坐标？</strong><br>
+                1. 在右侧面板点击选中你要配置的区域（如“办公桌”）。<br>
+                2. 鼠标点击下方地图上的位置，即可自动获取十字准星坐标并保存！
+            </div>
+            <div class="map-container" id="map-container">
+                <img id="map-preview" src="/static/office_bg.png" alt="Office Background">
+                <div id="pins-layer"></div>
+            </div>
+
+        </div>
+
+        <!-- 控件面板 -->
+        <div class="controls-section">
+            <h2>🌍 基本场景设置</h2>
+
+            <div class="form-group">
+                <label>办公室牌匾配置</label>
+                <input type="text" id="plaque-text" value="大龙的海鲜市场办公室">
+            </div>
+
+            <div class="form-group">
+                <label>办公室背景平面图 (1200x900 推荐)</label>
+                <div class="upload-row">
+                    <input type="file" id="bg-upload" accept="image/*">
+                    <button class="btn-upload" onclick="uploadImage('bg-upload', 'office_bg')">上传并替换</button>
+                </div>
+            </div>
+
+            <div class="form-group" style="display: flex; align-items: flex-end; gap: 15px;">
+                <div style="flex-grow: 1;">
+                    <label>角色皮肤</label>
+                    <select id="avatar-select" onchange="changeAvatarPreset()">
+                        <option value="slime">原神风史莱姆 (默认)</option>
+                        <option value="ghost">呆萌小幽灵</option>
+                        <option value="kitty">橙色治愈猫</option>
+                        <option value="crab">横行霸道蟹</option>
+                        <option value="duck">大嘴鸭</option>
+                        <option value="penguin">极地企鹅</option>
+                        <option value="panda">国宝熊猫</option>
+                        <option value="dog">看门修勾</option>
+                        <option value="bunny">长耳兔兔</option>
+                        <option value="frog">旅行青蛙</option>
+                        <option value="fox">九尾小狐</option>
+                        <option value="bear">呆呆棕熊</option>
+                        <option value="custom">上传自定义图集...</option>
+                    </select>
+                </div>
+                <div id="avatar-preview-container"
+                    style="width: 48px; height: 48px; overflow: hidden; border: 2px solid #ccc; border-radius: 4px; background: #fff; flex-shrink: 0; display: none;">
+                    <img id="avatar-preview-img" src="" style="height: 48px; display: block;">
+                </div>
+            </div>
+
+            <div class="form-group" id="custom-avatar-upload"
+                style="display: none; background: #f8f9fa; padding: 10px; border-radius: 4px; border: 1px solid #ddd;">
+                <label style="font-size: 12px;">上传自定义图集 (宽192 x 高48，包含 待机/眨眼/走动1/走动2 4帧)</label>
+                <div class="upload-row">
+                    <input type="file" id="avatar-sheet-upload" accept="image/png">
+                    <button class="btn-upload"
+                        onclick="uploadImage('avatar-sheet-upload', 'avatar_sheetUrl')">上传图集</button>
+                </div>
+            </div>
+
+            <h2 style="margin-top: 30px;">📍 坐标区域配置</h2>
+            <p style="font-size: 12px; color: #666;">点击卡片激活拾取模式，然后在左侧地图上点击定位。</p>
+            <div class="coord-list" id="coord-list">
+                <!-- 动态生成 -->
+            </div>
+
+            <h2 style="margin-top: 30px;">💬 状态气泡配置</h2>
+            <p style="font-size: 12px; color: #666;">用英文逗号 , 隔开多个气泡以实现随机</p>
+            <div id="bubble-list">
+                <!-- 动态生成 -->
+            </div>
+
+            <button onclick="saveConfig()" style="margin-top: 20px;">💾 保存所有配置应用到前台</button>
+            <div id="save-status"></div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">保存成功！</div>
+
+    <script>
+        let config = {};
+        let activeArea = null;
+
+        // 区域显示名称映射
+        const areaNameMap = {
+            "workdesk": "工作桌",
+            "editdesk": "代码编辑台",
+            "coffee": "咖啡机 (喝咖啡区)",
+            "slacking": "摸鱼角 (摸鱼区)",
+            "alert": "警报区 (出错)"
+        };
+
+        // 状态名称映射
+        const stateNameMap = {
+            "idle": "休息待命",
+            "writing": "文档编写",
+            "researching": "信息检索",
+            "executing": "执行任务",
+            "editing": "代码修改",
+            "syncing": "云端同步",
+            "error": "出错告警"
+        };
+
+
+        async function loadConfig() {
+            try {
+                const res = await fetch('/api/config');
+                config = await res.json();
+
+                document.getElementById('plaque-text').value = config.plaque_text || '';
+                document.getElementById('map-preview').src = config.office_bg || '/static/office_bg.png';
+
+                // Set preset dropdown if matched
+                const currentSheetUrl = config.avatar_sheetUrl || '/static/slime.png';
+                if (currentSheetUrl.includes("slime")) document.getElementById('avatar-select').value = "slime";
+                else if (currentSheetUrl.includes("ghost")) document.getElementById('avatar-select').value = "ghost";
+                else if (currentSheetUrl.includes("kitty")) document.getElementById('avatar-select').value = "kitty";
+                else if (currentSheetUrl.includes("crab")) document.getElementById('avatar-select').value = "crab";
+                else if (currentSheetUrl.includes("duck")) document.getElementById('avatar-select').value = "duck";
+                else if (currentSheetUrl.includes("penguin")) document.getElementById('avatar-select').value = "penguin";
+                else if (currentSheetUrl.includes("panda")) document.getElementById('avatar-select').value = "panda";
+                else if (currentSheetUrl.includes("dog")) document.getElementById('avatar-select').value = "dog";
+                else if (currentSheetUrl.includes("bunny")) document.getElementById('avatar-select').value = "bunny";
+                else if (currentSheetUrl.includes("frog")) document.getElementById('avatar-select').value = "frog";
+                else if (currentSheetUrl.includes("fox")) document.getElementById('avatar-select').value = "fox";
+                else if (currentSheetUrl.includes("bear")) document.getElementById('avatar-select').value = "bear";
+                else {
+                    document.getElementById('avatar-select').value = "custom";
+                    document.getElementById('custom-avatar-upload').style.display = "block";
+                }
+
+                updateAvatarPreview(currentSheetUrl);
+
+                renderCoordList();
+                renderPins();
+                renderBubbleList();
+            } catch (err) {
+                console.error("Failed to load config", err);
+                showToast("配置加载失败");
+            }
+        }
+
+        function renderCoordList() {
+            const list = document.getElementById('coord-list');
+            list.innerHTML = '';
+
+            if (!config.areas) return;
+
+            for (let [key, val] of Object.entries(config.areas)) {
+                const item = document.createElement('div');
+                item.className = 'coord-item';
+                if (key === activeArea) item.classList.add('active');
+
+                const title = areaNameMap[key] || key;
+                item.innerHTML = `
+                    <strong>${title}</strong>
+                    <span class="coord-values">X: ${Math.round(val.x)}, Y: ${Math.round(val.y)}</span>
+                `;
+                item.onclick = () => selectArea(key);
+                list.appendChild(item);
+            }
+        }
+
+        function renderBubbleList() {
+            const bList = document.getElementById('bubble-list');
+            bList.innerHTML = '';
+
+            if (!config.bubbles) return;
+
+            for (let [key, val] of Object.entries(config.bubbles)) {
+                const group = document.createElement('div');
+                group.className = 'form-group';
+
+                const title = stateNameMap[key] || key;
+                group.innerHTML = `
+                    <label>${title}</label>
+                    <input type="text" id="bubble-${key}" value="${(val || []).join(',')}">
+                `;
+                bList.appendChild(group);
+            }
+        }
+
+        function selectArea(key) {
+            activeArea = key;
+            renderCoordList();
+            renderPins();
+        }
+
+        function renderPins() {
+            const layer = document.getElementById('pins-layer');
+            layer.innerHTML = '';
+
+            if (!config.areas) return;
+
+            // 获取图片的实际渲染尺寸比例
+            const img = document.getElementById('map-preview');
+            // 假设默认原图是 1200x900
+            const scaleX = img.clientWidth / 1200;
+            const scaleY = img.clientHeight / 900;
+
+            for (let [key, val] of Object.entries(config.areas)) {
+                const pin = document.createElement('div');
+                pin.className = 'pin';
+
+                // 计算在屏幕上的像素位置
+                pin.style.left = (val.x * scaleX) + 'px';
+                pin.style.top = (val.y * scaleY) + 'px';
+
+                if (key === activeArea) {
+                    pin.style.background = '#4caf50';
+                    pin.style.transform = 'translate(-50%, -50%) scale(1.5)';
+                    pin.style.zIndex = '10';
+                }
+
+                const label = document.createElement('div');
+                label.className = 'pin-label';
+                label.innerText = areaNameMap[key] || key;
+                pin.appendChild(label);
+
+                layer.appendChild(pin);
+            }
+        }
+
+        // 监听图片点击获取坐标
+        document.getElementById('map-container').addEventListener('click', function (e) {
+            if (!activeArea) {
+                showToast("请先在右侧选择要设置坐标的区域");
+                return;
+            }
+
+            const rect = this.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const img = document.getElementById('map-preview');
+            const scaleX = 1200 / img.clientWidth;
+            const scaleY = 900 / img.clientHeight;
+
+            const rawX = Math.round(x * scaleX);
+            const rawY = Math.round(y * scaleY);
+
+            config.areas[activeArea] = { x: rawX, y: rawY };
+
+            renderCoordList();
+            renderPins();
+        });
+
+        // 缩放窗口时重绘 pins
+        window.addEventListener('resize', renderPins);
+
+        async function uploadImage(inputId, configKey) {
+            const fileInput = document.getElementById(inputId);
+            if (!fileInput.files.length) {
+                showToast("请先选择图片文件");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            try {
+                const res = await fetch('/api/upload/image', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    config[configKey] = data.url;
+                    if (configKey === 'office_bg') {
+                        document.getElementById('map-preview').src = data.url;
+                    }
+                    saveConfig(true); // 静默保存
+                    showToast("上传成功");
+                } else {
+                    showToast("上传失败: " + data.message);
+                }
+            } catch (e) {
+                showToast("上传发生错误");
+            }
+        }
+
+        function updateAvatarPreview(url) {
+            const container = document.getElementById('avatar-preview-container');
+            const img = document.getElementById('avatar-preview-img');
+            if (url && !url.includes('custom') && url !== 'custom') {
+                container.style.display = 'block';
+                img.src = url;
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        function changeAvatarPreset() {
+            const val = document.getElementById('avatar-select').value;
+            const uploadDiv = document.getElementById('custom-avatar-upload');
+            if (val === 'custom') {
+                uploadDiv.style.display = 'block';
+                updateAvatarPreview('custom');
+            } else {
+                uploadDiv.style.display = 'none';
+                config.avatar_sheetUrl = `/static/${val}.png`;
+                updateAvatarPreview(config.avatar_sheetUrl);
+                saveConfig(true);
+                showToast("角色切换成功，请刷新前台查看");
+            }
+        }
+
+        async function saveConfig(silent = false) {
+            config.plaque_text = document.getElementById('plaque-text').value;
+
+            // 收集所有气泡
+            if (config.bubbles) {
+                for (let key in config.bubbles) {
+                    const el = document.getElementById(`bubble-${key}`);
+                    if (el) {
+                        config.bubbles[key] = el.value.split(',').map(s => s.trim()).filter(s => s);
+                    }
+                }
+            }
+
+            try {
+                const res = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                if (res.ok) {
+                    if (!silent) showToast("配置已保存！你可以返回前台查看。");
+                }
+            } catch (err) {
+                showToast("保存失败");
+            }
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.style.opacity = '1';
+            setTimeout(() => t.style.opacity = '0', 3000);
+        }
+
+        // 初始化
+        window.onload = loadConfig;
+    </script>
+</body>
+
+</html>

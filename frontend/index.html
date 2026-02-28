@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大龙的办公室</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #1a1a2e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Courier New', monospace;
+        }
+
+        #game-container {
+            border: 4px solid #e94560;
+            image-rendering: pixelated;
+        }
+
+        #status-text {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #eee;
+            font-size: 14px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 4px;
+            max-width: 90%;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="game-container"></div>
+    <div id="status-text">加载中...</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <script>
+        let uiConfig = {};
+
+        const config = {
+            type: Phaser.AUTO,
+            width: 1200,
+            height: 900,
+            parent: 'game-container',
+            pixelArt: true,
+            physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
+            scene: { preload: preload, create: create, update: update }
+        };
+
+        let game, star, currentState = '', currentAreaKey = '', statusText, lastFetch = 0, lastBlink = 0, lastBubble = 0, targetX = 600, targetY = 450, bubble = null, typewriterText = '', typewriterTarget = '', typewriterIndex = 0, lastTypewriter = 0;
+        let disableRandomWander = 0;
+        const FETCH_INTERVAL = 2000;
+        const BLINK_INTERVAL = 2500;
+        const BUBBLE_INTERVAL = 8000;
+        const TYPEWRITER_DELAY = 50;
+
+        function preload() {
+            this.load.image('office_bg', uiConfig.office_bg || '/static/office_bg.png');
+            let sheetUrl = uiConfig.avatar_sheetUrl || '/static/lobster.png';
+            this.load.spritesheet('avatar_sheet', sheetUrl, { frameWidth: 48, frameHeight: 48 });
+        }
+
+        function create() {
+            game = this;
+            this.add.image(600, 450, 'office_bg');
+
+            star = game.physics.add.sprite(950, 250, 'avatar_sheet');
+            star.setOrigin(0.5);
+            star.setScale(1.0);
+            star.setAlpha(0.95);
+
+            this.anims.create({
+                key: 'idle',
+                frames: [{ key: 'avatar_sheet', frame: 0 }],
+                frameRate: 1
+            });
+            this.anims.create({
+                key: 'blink',
+                frames: [{ key: 'avatar_sheet', frame: 1 }, { key: 'avatar_sheet', frame: 0 }],
+                frameRate: 6,
+                repeat: 0
+            });
+            this.anims.create({
+                key: 'walk',
+                frames: this.anims.generateFrameNumbers('avatar_sheet', { start: 2, end: 3 }),
+                frameRate: 6,
+                repeat: -1
+            });
+            star.play('idle');
+
+            // 监听鼠标/触摸点击事件：互动动作
+            this.input.on('pointerdown', function (pointer) {
+                const phrases = [
+                    "喊我干什么？",
+                    "你要我去哪里？",
+                    "我在摸鱼，别打扰我！",
+                    "咖啡真好喝",
+                    "又让我跑腿...",
+                    "来啦来啦"
+                ];
+                const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+
+                if (phrase === "咖啡真好喝") {
+                    const coffeeArea = (uiConfig.areas && uiConfig.areas['coffee']) ? uiConfig.areas['coffee'] : { x: 950, y: 250 };
+                    targetX = coffeeArea.x + (Math.random() - 0.5) * 40;
+                    targetY = coffeeArea.y + (Math.random() - 0.5) * 40;
+                } else {
+                    targetX = pointer.x;
+                    targetY = pointer.y;
+                }
+
+                // 暂停随机漫游 8 秒
+                disableRandomWander = game.time.now + 8000;
+
+                showBubble(phrase);
+                lastBubble = game.time.now;
+            });
+
+            // 加像素风小牌匾
+            const plaqueTextValue = uiConfig.plaque_text || '大龙的海鲜市场办公室';
+            const plaqueBg = game.add.rectangle(600, 850, 380, 40, 0x5d4037);
+            plaqueBg.setStrokeStyle(3, 0x3e2723);
+            const plaqueText = game.add.text(600, 850, plaqueTextValue, {
+                font: '18px monospace',
+                fill: '#ffd700',
+                fontWeight: 'bold',
+                stroke: '#000',
+                strokeThickness: 2
+            }).setOrigin(0.5);
+            // 牌匾两边加个小装饰
+            game.add.text(430, 850, '⭐', { font: '20px' }).setOrigin(0.5);
+            game.add.text(770, 850, '⭐', { font: '20px' }).setOrigin(0.5);
+
+            statusText = document.getElementById('status-text');
+            fetchStatus();
+        }
+
+        function update(time) {
+            if (time - lastFetch > FETCH_INTERVAL) { fetchStatus(); lastFetch = time; }
+
+            // 眨眼
+            if (time - lastBlink > BLINK_INTERVAL) {
+                if (star.anims.currentAnim && star.anims.currentAnim.key === 'idle') {
+                    star.play('blink');
+                    star.once('animationcomplete', () => {
+                        if (star.anims.currentAnim && star.anims.currentAnim.key !== 'walk') star.play('idle');
+                    });
+                }
+                lastBlink = time;
+            }
+
+            // 冒气泡
+            if (time - lastBubble > BUBBLE_INTERVAL && currentState) {
+                showBubble();
+                lastBubble = time;
+            }
+
+            // 打字机效果
+            if (typewriterIndex < typewriterTarget.length && time - lastTypewriter > TYPEWRITER_DELAY) {
+                typewriterText += typewriterTarget[typewriterIndex];
+                statusText.textContent = typewriterText;
+                typewriterIndex++;
+                lastTypewriter = time;
+            }
+
+            // 移动 + 小踱步
+            moveStar(time);
+        }
+
+        function normalizeState(s) {
+            if (!s) return 'idle';
+            if (s === 'working') return 'writing';
+            if (s === 'run' || s === 'running') return 'executing';
+            if (s === 'sync') return 'syncing';
+            if (s === 'research') return 'researching';
+            return s;
+        }
+
+        function fetchStatus() {
+            fetch('/status')
+                .then(response => response.json())
+                .then(data => {
+                    const nextState = normalizeState(data.state);
+                    const defaultState = uiConfig.states && uiConfig.states['idle'] ? uiConfig.states['idle'] : { name: '待命', areas: ['alert'] };
+                    const stateInfo = (uiConfig.states && uiConfig.states[nextState]) ? uiConfig.states[nextState] : defaultState;
+
+                    if (!window.lastDetail || window.lastDetail !== data.detail || nextState !== currentState) {
+                        window.lastDetail = data.detail;
+                        const changed = nextState !== currentState || !currentAreaKey;
+                        currentState = nextState;
+
+                        let texts = uiConfig.bubbles && uiConfig.bubbles[currentState] ? uiConfig.bubbles[currentState] : ["努力打工中..."];
+                        const randomPhrase = texts[Math.floor(Math.random() * texts.length)];
+
+                        let englishDetail = data.detail || "";
+                        if (englishDetail.includes("Assistant is thinking") || englishDetail.includes("Assistant is editing")) {
+                            englishDetail = "";
+                        }
+                        const nextLine = '[' + stateInfo.name + '] ' + randomPhrase + (englishDetail ? ' : ' + englishDetail : '');
+
+                        typewriterTarget = nextLine;
+                        typewriterText = '';
+                        typewriterIndex = 0;
+
+                        if (changed) {
+                            let areaKeys = stateInfo.areas || ['alert'];
+                            if (!Array.isArray(areaKeys)) { areaKeys = [areaKeys]; }
+                            currentAreaKey = areaKeys[Math.floor(Math.random() * areaKeys.length)];
+
+                            const targetArea = (uiConfig.areas && uiConfig.areas[currentAreaKey]) ? uiConfig.areas[currentAreaKey] : { x: 600, y: 450 };
+                            targetX = targetArea.x + (Math.random() - 0.5) * 40;
+                            targetY = targetArea.y + (Math.random() - 0.5) * 40;
+
+                            showBubble(randomPhrase);
+                            if (game) lastBubble = game.time.now;
+                        } else if (englishDetail === "") {
+                            // 同一个状态下重复激活也会冒个泡
+                            showBubble(randomPhrase);
+                            if (game) lastBubble = game.time.now;
+                        }
+                    }
+                })
+                .catch(error => {
+                    typewriterTarget = '连接失败，正在重试...';
+                    typewriterText = '';
+                    typewriterIndex = 0;
+                });
+        }
+
+        function moveStar(time) {
+            const targetArea = (uiConfig.areas && uiConfig.areas[currentAreaKey]) ? uiConfig.areas[currentAreaKey] : { x: 600, y: 450 };
+            if (Math.random() < 0.005 && (!disableRandomWander || time > disableRandomWander)) {
+                targetX = targetArea.x + (Math.random() - 0.5) * 40;
+                targetY = targetArea.y + (Math.random() - 0.5) * 40;
+            }
+            const dx = targetX - star.x;
+            const dy = targetY - star.y;
+            const speed = 1.2;
+            const wobble = Math.sin(time / 200) * 0.8;
+            if (Math.abs(dx) > 3) star.x += Math.sign(dx) * speed;
+            if (Math.abs(dy) > 3) star.y += Math.sign(dy) * speed;
+            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+                star.setY(star.y + wobble);
+                if (star.anims.currentAnim && star.anims.currentAnim.key !== 'walk') {
+                    star.play('walk');
+                }
+            } else {
+                if (star.anims.currentAnim && star.anims.currentAnim.key === 'walk') {
+                    star.play('idle');
+                }
+            }
+            if (dx > 0) star.setFlipX(false);
+            if (dx < 0) star.setFlipX(true);
+        }
+
+        function showBubble(forcedText = null) {
+            if (bubble) { bubble.destroy(); bubble = null; }
+            let text = forcedText;
+
+            if (!text) {
+                const defaultTexts = ["摸鱼中...", "好困啊"];
+                let texts = defaultTexts;
+                if (uiConfig.bubbles && uiConfig.bubbles[currentState]) {
+                    texts = uiConfig.bubbles[currentState];
+                } else if (uiConfig.bubbles && uiConfig.bubbles['idle']) {
+                    texts = uiConfig.bubbles['idle'];
+                }
+                text = texts[Math.floor(Math.random() * texts.length)];
+            }
+
+            // 智能寻路：如果是去喝咖啡/水/饮料的对话，强制改变目标坐标为咖啡区
+            if (text.includes("咖啡") || text.includes("水") || text.includes("饮料")) {
+                const coffeeArea = (uiConfig.areas && uiConfig.areas['coffee']) ? uiConfig.areas['coffee'] : { x: 950, y: 250 };
+                targetX = coffeeArea.x + (Math.random() - 0.5) * 40;
+                targetY = coffeeArea.y + (Math.random() - 0.5) * 40;
+                disableRandomWander = game.time.now + 10000; // 喝咖啡暂停摸鱼10秒
+            } else if (!forcedText) {
+                // 如果是普通随机对话，只是普通漫游，不在交互中时，如果目前 target 是咖啡机但是不在喝水，恢复到当前所属主区域
+                if (disableRandomWander < game.time.now) {
+                    const targetArea = (uiConfig.areas && uiConfig.areas[currentAreaKey]) ? uiConfig.areas[currentAreaKey] : { x: 600, y: 450 };
+                    targetX = targetArea.x + (Math.random() - 0.5) * 40;
+                    targetY = targetArea.y + (Math.random() - 0.5) * 40;
+                }
+            }
+
+            const bg = game.add.rectangle(star.x, star.y - 45, text.length * 14 + 20, 28, 0xffffff, 0.95);
+            bg.setStrokeStyle(2, 0x000000);
+            const txt = game.add.text(star.x, star.y - 45, text, { font: '12px monospace', fill: '#000', align: 'center' }).setOrigin(0.5);
+            bubble = game.add.container(0, 0, [bg, txt]);
+            bubble.setDepth(100);
+            setTimeout(() => { if (bubble) { bubble.destroy(); bubble = null; } }, 3000);
+        }
+
+        fetch('/api/config').then(res => res.json()).then(conf => {
+            uiConfig = conf || {};
+            new Phaser.Game(config);
+        });
+    </script>
+</body>
+
+</html>

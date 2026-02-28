@@ -1,0 +1,7 @@
+*.log
+state.json
+__pycache__/
+*.service
+.DS_Store
+node_modules/
+.env
