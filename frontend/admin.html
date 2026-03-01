@@ -187,6 +187,82 @@
             transition: opacity 0.3s;
             z-index: 1000;
         }
+
+        /* ─── Responsive / Mobile ─────────────────────────────── */
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+                padding: 0 12px;
+                margin: 12px auto;
+                gap: 12px;
+            }
+
+            .map-section,
+            .controls-section {
+                flex: none;
+                width: 100%;
+            }
+
+            .controls-section {
+                height: auto;
+                /* remove fixed height */
+                overflow-y: visible;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                padding: 10px 14px;
+                font-size: 13px;
+            }
+
+            .header button {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+
+            .container {
+                padding: 0 8px;
+                margin: 8px auto;
+            }
+
+            .map-section,
+            .controls-section {
+                padding: 12px;
+            }
+
+            h2 {
+                font-size: 15px;
+            }
+
+            /* Map: limit height on phone so it doesn't eat all screen */
+            .map-container {
+                max-height: 55vw;
+            }
+
+            /* Agent grid: single column on phone */
+            #agents-list {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Bigger tap targets */
+            .coord-item {
+                padding: 12px;
+                font-size: 14px;
+            }
+
+            input[type="text"],
+            select {
+                padding: 12px;
+                font-size: 15px;
+                /* Prevents iOS auto-zoom */
+            }
+
+            .btn {
+                padding: 14px;
+                font-size: 15px;
+            }
+        }
     </style>
 </head>
 
@@ -195,7 +271,7 @@
     <div class="header">
         <div><strong>🐾 Star Office UI</strong> 群像控制台</div>
         <button onclick="window.location.href='/'"
-            style="color:white; background:transparent; border:1px solid white; padding:4px 12px; border-radius:4px; font-size:14px; cursor:pointer;">↩
+            style="color:white; background:transparent; border:1px solid white; padding:4px 12px; border-radius:4px; font-size:14px; cursor:pointer; position:relative; z-index:1001;">↩
             返回监控大厅</button>
     </div>
 

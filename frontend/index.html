@@ -12,68 +12,137 @@
             box-sizing: border-box;
         }
 
+        html,
         body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
             background: #1a1a2e;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
             font-family: 'Courier New', monospace;
-            padding-top: 10px;
         }
 
+        /* Phaser will auto-size #game-container via its Scale Manager */
         #game-container {
-            border: 4px solid #e94560;
             image-rendering: pixelated;
+            image-rendering: crisp-edges;
         }
 
+        /* Status bar: floating at bottom-center, above the game */
         #status-text {
+            position: fixed;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
             color: #eee;
-            font-size: 14px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px 20px;
+            font-size: clamp(10px, 1.5vw, 14px);
+            background: rgba(0, 0, 0, 0.75);
+            padding: 6px 16px;
             border-radius: 4px;
-            max-width: 90%;
+            max-width: 92vw;
             text-align: center;
-            margin-top: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            z-index: 100;
+            pointer-events: none;
         }
 
+        /* Dashboard: elegant glass panel at top-right */
         #dashboard {
-            margin-top: 10px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            max-width: 1200px;
-            justify-content: center;
-            padding: 0 10px 20px;
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            background: rgba(15, 15, 30, 0.78);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            padding: 10px 14px;
+            min-width: 160px;
+            max-width: 220px;
+            max-height: 85vh;
+            overflow-y: auto;
+            z-index: 100;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+            animation: slideIn 0.4s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        #dashboard-title {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* On very small screens, compact horizontal bar at bottom */
+        @media (max-width: 480px) {
+            #dashboard {
+                top: auto;
+                bottom: 40px;
+                right: 6px;
+                left: 6px;
+                max-width: none;
+                flex-direction: row;
+                min-width: 0;
+                padding: 6px 10px;
+                border-radius: 10px;
+            }
+
+            #dashboard-title {
+                display: none;
+            }
+
+            #dashboard-agents {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 4px;
+            }
         }
 
         .dash-item {
             display: flex;
             align-items: center;
-            gap: 6px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            gap: 8px;
+            padding: 5px 4px;
             border-radius: 6px;
-            padding: 6px 10px;
-            font-size: 12px;
-            color: #ccc;
+            transition: background 0.2s;
+        }
+
+        .dash-item:hover {
+            background: rgba(255, 255, 255, 0.06);
         }
 
         .dash-item .dot {
-            width: 8px;
-            height: 8px;
+            width: 7px;
+            height: 7px;
             border-radius: 50%;
             flex-shrink: 0;
+            transition: all 0.4s;
         }
 
         .dash-item .dot.idle {
-            background: #7f8c8d;
+            background: #4a5568;
+            box-shadow: none;
         }
 
         .dash-item .dot.working {
             background: #2ecc71;
-            box-shadow: 0 0 6px #2ecc71;
+            box-shadow: 0 0 6px #2ecc71, 0 0 12px rgba(46, 204, 113, 0.4);
             animation: pulse 1.5s infinite;
         }
 
@@ -82,11 +151,34 @@
             0%,
             100% {
                 opacity: 1;
+                transform: scale(1);
             }
 
             50% {
-                opacity: 0.5;
+                opacity: 0.6;
+                transform: scale(0.85);
             }
+        }
+
+        .dash-item .name {
+            color: #e2e8f0;
+            font-size: 11px;
+            font-weight: 600;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .dash-item .state {
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.35);
+            white-space: nowrap;
+        }
+
+        .dash-item .state.on {
+            color: #2ecc71;
+            font-weight: bold;
         }
 
         .dash-item .name {
@@ -103,7 +195,10 @@
 <body>
     <div id="game-container"></div>
     <div id="status-text">加载中...</div>
-    <div id="dashboard"></div>
+    <div id="dashboard">
+        <div id="dashboard-title">AGENTS</div>
+        <div id="dashboard-agents"></div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
     <script>
@@ -116,6 +211,13 @@
             height: 900,
             parent: 'game-container',
             pixelArt: true,
+            backgroundColor: '#1a1a2e',
+            scale: {
+                mode: Phaser.Scale.FIT,          // Proportional scale to fit viewport
+                autoCenter: Phaser.Scale.CENTER_BOTH, // Center horizontally & vertically
+                width: 1200,
+                height: 900,
+            },
             physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
             scene: { preload: preload, create: create, update: update }
         };
@@ -397,17 +499,17 @@
 
         // ─── Dashboard ─────────────────────────────────────────────────
         function renderDashboard() {
-            const container = document.getElementById('dashboard');
+            const container = document.getElementById('dashboard-agents');
+            if (!container) return;
             container.innerHTML = '';
             agents.forEach(a => {
                 let isW = activeWorkerIds.has(a.id);
-                let stateLabel = isW ? '🟢 工作中' : '💤 待命';
                 let div = document.createElement('div');
                 div.className = 'dash-item';
                 div.innerHTML = `
                     <span class="dot ${isW ? 'working' : 'idle'}"></span>
                     <span class="name">${a.id}</span>
-                    <span class="state">${stateLabel}</span>
+                    <span class="state ${isW ? 'on' : ''}">${isW ? '工作中' : '待命'}</span>
                 `;
                 container.appendChild(div);
             });
