@@ -65,6 +65,7 @@ def load_state():
                 state["detail"] = "待命中（自动回到休息区）"
                 state["progress"] = 0
                 state["updated_at"] = datetime.now().isoformat()
+                state["active_agents"] = {}  # Clear active agents as well
                 # persist the auto-idle so every client sees it consistently
                 try:
                     save_state(state)

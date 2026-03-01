@@ -29,44 +29,45 @@ print(f"Known agents: {AGENT_IDS}")
 # 'tools' write errors also real-ish activity
 WORK_SUBSYSTEMS = {"agent/embedded"}
 
-# Within agent/embedded logs, only these message patterns count
-# (excludes 'workspace bootstrap' which happens passively)
+# Within agent/embedded logs
 WORK_MESSAGES = [
+    "embedded run start",
     "embedded run prompt start",
-    "embedded run agent start",
     "embedded run tool start",
     "embedded run tool end",
-    "embedded run agent end",
     "embedded run prompt end",
-]
-
-EDIT_MESSAGES = [
-    "write_to_file",
-    "replace_file_content",
-    "multi_replace_file_content",
-    "edit_file",
+    "embedded run done",
 ]
 
 
-def detect_agent(lane_str):
-    """Extract agent ID from lane string like 'session:agent:coder:subagent:xxx'."""
-    if lane_str:
-        parts = lane_str.split(":")
-        # lane format: session:agent:<agent_id>:...
-        if len(parts) >= 3 and parts[0] == "session" and parts[1] == "agent":
-            agent = parts[2]
-            if agent in AGENT_IDS:
-                return agent
-    # Fallback: check raw content for agent name keywords
-    return "main"
+import re
 
+def extract_run_info(msg):
+    """提取日志中的 runId, tool, 等信息"""
+    run_id_match = re.search(r"runId=([^\s]+)", msg)
+    tool_match = re.search(r"tool=([^\s]+)", msg)
+    
+    run_id = run_id_match.group(1) if run_id_match else ""
+    tool = tool_match.group(1) if tool_match else ""
+    
+    return run_id, tool
 
-def detect_agent_from_content(raw_content):
-    """Fallback: try to find agent name in raw log content."""
+def identify_agent_by_runid(run_id, raw_content):
+    """
+    通过 runId 提取真实 Agent
+    示例: announce:v1:agent:coder:subagent:xxx -> coder
+    默认返回: main
+    """
+    m = re.search(r"agent:([a-zA-Z0-9_-]+):", run_id)
+    if m:
+        agent = m.group(1)
+        if agent in AGENT_IDS:
+            return agent
+            
+    # Fallback to string matching as last resort
     lower = raw_content.lower()
     for agent_id in AGENT_IDS:
-        if agent_id == "main":
-            continue
+        if agent_id == "main": continue
         if agent_id.lower() in lower:
             return agent_id
     return "main"
@@ -88,6 +89,8 @@ def find_latest_log():
              if f.startswith("openclaw-") and f.endswith(".log")]
     if not files:
         return None
+    # Return the most recently modified log, as OpenClaw might still be writing to 
+    # yesterday's log file if it hasn't restarted/rolled over.
     return max(files, key=os.path.getmtime)
 
 
@@ -130,7 +133,11 @@ def main():
                         pass
 
                 # ── Filter 1: Only care about real work subsystems ──
-                if subsystem not in WORK_SUBSYSTEMS:
+                # Also check if the metadata 'name' indicates a session/agent
+                name = str(meta.get("name", ""))
+                is_agent_session = "agent" in name or name.startswith("session:agent:")
+                
+                if subsystem not in WORK_SUBSYSTEMS or not is_agent_session:
                     continue
 
                 # ── Filter 2: Ignore bootstrap / passive logs ──
@@ -138,38 +145,34 @@ def main():
                 content_f0 = str(log_data.get("0", "")).lower()
                 full_msg = msg + " " + content_f0
 
-                # Detect if this is an edit operation
-                is_edit = any(kw in full_msg for kw in EDIT_MESSAGES)
-                is_work = any(pattern in full_msg for pattern in WORK_MESSAGES)
+                # 这里就是真实的 AI 活动信号
+                raw = str(log_data)
+                
+                run_id, tool_name = extract_run_info(full_msg)
+                agent_id = identify_agent_by_runid(run_id, raw)
 
-                if not is_edit and not is_work:
-                    continue  # Skip bootstrap, workspace files, etc.
-
-                # ── Detect which agent ──
-                # Try lane field first
-                lane = ""
-                for v in log_data.values():
-                    if isinstance(v, str) and v.startswith("session:agent:"):
-                        lane = v
-                        break
-                    if isinstance(v, dict):
-                        for vv in v.values():
-                            if isinstance(vv, str) and vv.startswith("session:agent:"):
-                                lane = vv
-                                break
-
-                agent_id = detect_agent(lane)
-                if agent_id == "main":
-                    # Try content matching as fallback
-                    raw = str(log_data)
-                    agent_id = detect_agent_from_content(raw)
-
-                if is_edit:
-                    print(f"EDIT  [{agent_id}]: {full_msg[:80]}")
-                    set_state("editing", "正在修改代码...", agent_id)
+                # 客观状态映射机
+                if "embedded run done" in full_msg:
+                    print(f"IDLE  [{agent_id}]: {full_msg[:80]}")
+                    set_state("idle", "任务完成，休息中...", agent_id)
+                elif "embedded run tool start" in full_msg:
+                    detail = f"正在使用工具: {tool_name}" if tool_name else "正在执行工具..."
+                    state_val = "editing" if "edit" in tool_name or "write" in tool_name else "executing"
+                    print(f"TOOL  [{agent_id}]: {detail}")
+                    set_state(state_val, detail, agent_id)
+                elif "embedded run prompt start" in full_msg:
+                    print(f"THINK [{agent_id}]: 正在思考...")
+                    set_state("researching", "正在思考分析...", agent_id)
+                elif "embedded run start" in full_msg:
+                    print(f"START [{agent_id}]: 接到新任务")
+                    set_state("executing", "接到新任务，启动中...", agent_id)
+                elif "embedded run tool end" in full_msg:
+                    # 工具用完了还在思考，不要切到 idle！
+                    print(f"WAIT  [{agent_id}]: 工具返回结果，继续推进")
+                    set_state("executing", "整理返回结果...", agent_id)
                 else:
-                    print(f"WORK  [{agent_id}]: {full_msg[:80]}")
-                    set_state("executing", "正在思考执行...", agent_id)
+                    # 保底工作状态
+                    set_state("executing", "处理中...", agent_id)
 
         except Exception as e:
             print(f"Error: {e}")
