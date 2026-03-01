@@ -15,10 +15,14 @@
       "y": 693
     },
     "slacking": {
-      "x": 585,
-      "y": 209,
+      "h": 184,
       "w": 464,
-      "h": 184
+      "x": 585,
+      "y": 209
+    },
+    "thinkdesk": {
+      "x": 425,
+      "y": 226
     },
     "workdesk": {
       "x": 341,
@@ -138,7 +142,7 @@
     "researching": {
       "name": "搜索信息",
       "areas": [
-        "workdesk"
+        "thinkdesk"
       ]
     },
     "editing": {

@@ -45,16 +45,23 @@ def load_state():
     if not isinstance(state, dict):
         state = dict(DEFAULT_STATE)
 
-    # Auto-idle
+    # Auto-idle: only force idle if NO agents are actively working
     try:
         ttl = int(state.get("ttl_seconds", 25))
         updated_at = state.get("updated_at")
         s = state.get("state", "idle")
-        working_states = {"writing", "researching", "executing"}
-        if updated_at and s in working_states:
-            # tolerate both with/without timezone
+        active = state.get("active_agents", {})
+        working_states = {"writing", "researching", "executing", "editing"}
+        
+        # If there are active agents, DON'T auto-idle — show the active agent's state
+        if active:
+            latest = max(active.items(), key=lambda x: x[1].get("updated_at", ""))
+            state["state"] = latest[1].get("state", "executing")
+            state["detail"] = latest[1].get("detail", "工作中...")
+            state["agent_id"] = latest[0]
+        elif updated_at and s in working_states:
+            # No active agents but global state says working — auto-idle after TTL
             dt = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
-            # Use UTC for aware datetimes; local time for naive.
             if dt.tzinfo:
                 from datetime import timezone
                 age = (datetime.now(timezone.utc) - dt.astimezone(timezone.utc)).total_seconds()
@@ -65,8 +72,7 @@ def load_state():
                 state["detail"] = "待命中（自动回到休息区）"
                 state["progress"] = 0
                 state["updated_at"] = datetime.now().isoformat()
-                state["active_agents"] = {}  # Clear active agents as well
-                # persist the auto-idle so every client sees it consistently
+                state["active_agents"] = {}
                 try:
                     save_state(state)
                 except Exception:

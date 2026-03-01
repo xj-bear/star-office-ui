@@ -301,7 +301,8 @@
             <div class="coord-list" id="coord-list">
                 <div class="coord-item" onclick="selectArea('slacking')" id="card-slacking">🛋️ 休闲区（摸鱼）</div>
                 <div class="coord-item" onclick="selectArea('coffee')" id="card-coffee">☕ 茶水间（咖啡）</div>
-                <div class="coord-item" onclick="selectArea('workdesk')" id="card-workdesk">💻 办公桌（执行/研究/写文档）</div>
+                <div class="coord-item" onclick="selectArea('workdesk')" id="card-workdesk">💻 办公桌（执行/写文档）</div>
+                <div class="coord-item" onclick="selectArea('thinkdesk')" id="card-thinkdesk">🧠 思考区（研究/分析）</div>
                 <div class="coord-item" onclick="selectArea('editdesk')" id="card-editdesk">⌨️ 编辑台（写代码）</div>
                 <div class="coord-item" onclick="selectArea('alert')" id="card-alert">🚨 警报区（出错）</div>
             </div>
@@ -350,6 +351,7 @@
             'slacking': '🛋️ 休闲区',
             'coffee': '☕ 茶水间',
             'workdesk': '💻 办公桌',
+            'thinkdesk': '🧠 思考区',
             'editdesk': '⌨️ 编辑台',
             'alert': '🚨 警报区'
         };
@@ -463,7 +465,7 @@
 
         // ── Drag / click system ──
         // Work areas use point-click, idle areas use drag-to-draw
-        const POINT_AREAS = new Set(['workdesk', 'editdesk', 'alert']);
+        const POINT_AREAS = new Set(['workdesk', 'thinkdesk', 'editdesk', 'alert']);
         let isDragging = false;
         let dragStartX = 0, dragStartY = 0;
 
@@ -555,6 +557,7 @@
                 'slacking': 'rgba(46,204,113,0.3)',
                 'coffee': 'rgba(230,126,34,0.3)',
                 'workdesk': 'rgba(52,152,219,0.3)',
+                'thinkdesk': 'rgba(241,196,15,0.3)',
                 'editdesk': 'rgba(155,89,182,0.3)',
                 'alert': 'rgba(231,76,60,0.3)'
             };
@@ -562,6 +565,7 @@
                 'slacking': '#2ecc71',
                 'coffee': '#e67e22',
                 'workdesk': '#3498db',
+                'thinkdesk': '#f1c40f',
                 'editdesk': '#9b59b6',
                 'alert': '#e74c3c'
             };
@@ -671,7 +675,7 @@
                 "idle": { "name": "待命", "areas": ["slacking"] },
                 "writing": { "name": "整理文档", "areas": ["workdesk"] },
                 "executing": { "name": "执行任务", "areas": ["workdesk"] },
-                "researching": { "name": "搜索信息", "areas": ["workdesk"] },
+                "researching": { "name": "搜索信息", "areas": ["thinkdesk"] },
                 "editing": { "name": "修改代码", "areas": ["editdesk"] },
                 "syncing": { "name": "同步备份", "areas": ["coffee"] },
                 "error": { "name": "出错了", "areas": ["alert"] }

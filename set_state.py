@@ -7,7 +7,7 @@ import sys
 from datetime import datetime
 
 STATE_FILE = "/home/jason/.openclaw/workspace/star-office-ui/state.json"
-IDLE_TIMEOUT = 30  # seconds: agent marked idle if no activity for this long
+IDLE_TIMEOUT = 600  # seconds: 子代理可能连续思考数分钟，超时设为10分钟防止误清
 
 VALID_STATES = ["idle", "writing", "researching", "executing", "editing", "syncing", "error"]
 

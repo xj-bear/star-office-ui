@@ -323,7 +323,8 @@
                     bubbleTimeout: null,
                     disableRandomWander: 0,
                     lastBlink: 0,
-                    lastBubble: 0
+                    lastBubble: Math.random() * BUBBLE_INTERVAL,  // 随机错开气泡初始时间
+                    bubbleJitter: Math.floor(Math.random() * 6000) - 3000  // 每人独有的随机偏移 ±3s
                 });
             });
 
@@ -376,10 +377,12 @@
                     a.lastBlink = time;
                 }
 
-                // Random bubble
-                if (time - a.lastBubble > BUBBLE_INTERVAL && a.currentState) {
+                // Random bubble (每个 Agent 有独立的随机偏移)
+                const personalInterval = BUBBLE_INTERVAL + (a.bubbleJitter || 0);
+                if (time - a.lastBubble > personalInterval && a.currentState) {
                     showBubble(a);
                     a.lastBubble = time;
+                    a.bubbleJitter = Math.floor(Math.random() * 6000) - 3000;  // 每次刷新偏移
                 }
 
                 // Movement
@@ -461,7 +464,8 @@
                             a.targetY = pt.y;
 
                             let texts = uiConfig.bubbles && uiConfig.bubbles[agentState] || ['努力打工中...'];
-                            setTimeout(() => showBubble(a, texts[Math.floor(Math.random() * texts.length)]), Math.random() * 1000);
+                            // 每个Agent的气泡出现时间随机错开 0~3秒
+                            setTimeout(() => showBubble(a, texts[Math.floor(Math.random() * texts.length)]), Math.random() * 3000);
                         } else if (!nowWorking && wasWorking) {
                             // Agent just stopped working → return to idle
                             a.currentState = 'idle';
@@ -470,7 +474,23 @@
                             let pt = randomPtInArea(a.currentAreaKey);
                             a.targetX = pt.x;
                             a.targetY = pt.y;
-                            setTimeout(() => showBubble(a, '终于忙完了~'), Math.random() * 1500);
+                            // 每个 Agent 下班气泡随机错开 0~4秒
+                            setTimeout(() => showBubble(a, '终于忙完了~'), Math.random() * 4000);
+                        } else if (nowWorking && wasWorking) {
+                            // Agent still working — check if state changed (e.g. executing → researching)
+                            let agentState = normalizeState(backendActive[a.id]?.state || globalState);
+                            if (agentState !== a.currentState) {
+                                // State changed mid-work → move to correct area
+                                let si = (uiConfig.states && uiConfig.states[agentState])
+                                    ? uiConfig.states[agentState] : stateInfo;
+                                a.currentState = agentState;
+                                let areaKeys = si.areas || ['workdesk'];
+                                if (!Array.isArray(areaKeys)) areaKeys = [areaKeys];
+                                a.currentAreaKey = areaKeys[Math.floor(Math.random() * areaKeys.length)];
+                                let pt = randomPtInArea(a.currentAreaKey);
+                                a.targetX = pt.x;
+                                a.targetY = pt.y;
+                            }
                         }
                         // If still working, optionally update bubble on detail change
                         if (nowWorking && a.lastDetail !== (backendActive[a.id]?.detail || '')) {
