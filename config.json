@@ -1,41 +1,53 @@
 {
   "areas": {
     "alert": {
-      "x": 256,
-      "y": 588
+      "x": 264,
+      "y": 581
     },
     "coffee": {
-      "x": 868,
-      "y": 663
+      "h": 241,
+      "w": 525,
+      "x": 531,
+      "y": 539
     },
     "editdesk": {
-      "x": 250,
-      "y": 700
+      "x": 267,
+      "y": 693
     },
     "slacking": {
-      "x": 958,
-      "y": 277
+      "x": 585,
+      "y": 209,
+      "w": 464,
+      "h": 184
     },
     "workdesk": {
-      "x": 339,
-      "y": 344
+      "x": 341,
+      "y": 362
     }
   },
   "avatar_closed": "cat_closed",
   "avatar_open": "cat_open",
   "avatar_sheetUrl": "/static/crab.png",
+  "avatars": {
+    "analyst": "/static/lobster.png",
+    "coder": "/static/duck.png",
+    "coordinator": "/static/fox.png",
+    "evolution": "/static/bunny.png",
+    "main": "/static/penguin.png",
+    "researcher": "/static/crab.png",
+    "security": "/static/robot.png",
+    "sysadmin": "/static/dog.png",
+    "wechat": "/static/duck.png"
+  },
   "bubbles": {
     "editing": [
-      "敲代码中...",
-      "修复Bug",
-      "重构一下",
-      "修改配置",
-      "这个报错有点奇怪",
-      "StackOverflow救我",
-      "Ctrl+C Ctrl+V",
-      "今天绝不加班",
-      "谁写的祖传代码",
-      "调UI真麻烦..."
+      "冲鸭！",
+      "这个简单",
+      "加油加油",
+      "马上搞定",
+      "执行中，勿扰",
+      "看着进度条发呆",
+      "又是一个完美的指令"
     ],
     "error": [
       "啊哦…",
@@ -68,15 +80,19 @@
       "水群中",
       "好想睡觉..."
     ],
+    "interactive": [
+      "老板你找我？",
+      "别点我我在工作！",
+      "好渴想喝咖啡"
+    ],
     "researching": [
-      "让我搜一下",
-      "找到线索了",
-      "这个有意思",
-      "再深挖一点",
-      "百度一下你就知道",
-      "谷歌学术启动",
-      "资料太多了",
-      "论文看麻了"
+      "冲鸭！",
+      "这个简单",
+      "加油加油",
+      "马上搞定",
+      "执行中，勿扰",
+      "看着进度条发呆",
+      "又是一个完美的指令"
     ],
     "syncing": [
       "备份备份",
@@ -89,59 +105,59 @@
       "稳步同步中"
     ],
     "writing": [
-      "这个要记下来",
-      "写得手酸",
-      "再检查一遍",
-      "好记性不如烂笔头",
-      "文档写不完根本写不完",
-      "Markdown真好用",
-      "排版强迫症发作"
+      "冲鸭！",
+      "这个简单",
+      "加油加油",
+      "马上搞定",
+      "执行中，勿扰",
+      "看着进度条发呆",
+      "又是一个完美的指令"
     ]
   },
   "office_bg": "/static/office_bg.png",
   "plaque_text": "大龙的海鲜市场办公室",
   "states": {
-    "editing": {
-      "areas": [
-        "editdesk"
-      ],
-      "name": "修改代码"
-    },
-    "error": {
-      "areas": [
-        "alert"
-      ],
-      "name": "出错了"
-    },
-    "executing": {
-      "areas": [
-        "workdesk"
-      ],
-      "name": "执行任务"
-    },
     "idle": {
+      "name": "待命",
       "areas": [
         "slacking"
-      ],
-      "name": "待命"
-    },
-    "researching": {
-      "areas": [
-        "workdesk"
-      ],
-      "name": "搜索信息"
-    },
-    "syncing": {
-      "areas": [
-        "coffee"
-      ],
-      "name": "同步备份"
+      ]
     },
     "writing": {
+      "name": "整理文档",
       "areas": [
         "workdesk"
-      ],
-      "name": "整理文档"
+      ]
+    },
+    "executing": {
+      "name": "执行任务",
+      "areas": [
+        "workdesk"
+      ]
+    },
+    "researching": {
+      "name": "搜索信息",
+      "areas": [
+        "workdesk"
+      ]
+    },
+    "editing": {
+      "name": "修改代码",
+      "areas": [
+        "editdesk"
+      ]
+    },
+    "syncing": {
+      "name": "同步备份",
+      "areas": [
+        "coffee"
+      ]
+    },
+    "error": {
+      "name": "出错了",
+      "areas": [
+        "alert"
+      ]
     }
   }
 }

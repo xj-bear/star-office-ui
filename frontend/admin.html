@@ -4,47 +4,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>后台管理 - Star Office UI</title>
+    <title>Star Office UI - 群像控制台</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f6f8;
             margin: 0;
-            background: #f0f2f5;
+            padding: 0;
             color: #333;
         }
 
         .header {
-            background: #1a1a2e;
+            background: #2c3e50;
             color: white;
-            padding: 1rem 2rem;
+            padding: 15px 30px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
         .container {
             display: flex;
-            padding: 20px;
-            align-items: flex-start;
+            max-width: 1400px;
+            margin: 20px auto;
             gap: 20px;
+            padding: 0 20px;
         }
 
-        /* Map Section */
         .map-section {
             flex: 2;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
         }
 
         .map-container {
             position: relative;
-            border: 4px solid #ccc;
-            background: #fff;
             width: 100%;
-            max-width: 1200px;
+            border: 2px dashed #bdc3c7;
+            border-radius: 4px;
+            overflow: hidden;
             cursor: crosshair;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         .map-container img {
@@ -52,68 +54,94 @@
             display: block;
         }
 
-        .pin {
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            background: #e94560;
-            border-radius: 50%;
-            border: 2px solid white;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-            transition: all 0.2s;
-        }
-
-        .pin-label {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 12px;
-            transform: translate(-50%, -24px);
-            white-space: nowrap;
-            pointer-events: none;
-        }
-
-        /* Controls Section */
         .controls-section {
             flex: 1;
             background: white;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            max-width: 400px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            height: calc(100vh - 100px);
             overflow-y: auto;
-            max-height: 85vh;
         }
 
         h2 {
-            margin-top: 0;
-            font-size: 1.2rem;
+            font-size: 18px;
             border-bottom: 2px solid #eee;
             padding-bottom: 10px;
+            margin-top: 0;
+            color: #2c3e50;
         }
 
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
 
         label {
             display: block;
-            margin-bottom: 5px;
             font-weight: bold;
+            margin-bottom: 8px;
             font-size: 14px;
+            color: #555;
         }
 
         input[type="text"],
         select {
             width: 100%;
-            padding: 8px;
+            padding: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
             box-sizing: border-box;
+        }
+
+        .agent-card {
+            border: 1px solid #e0e0e0;
+            padding: 8px 10px;
+            border-radius: 6px;
+            background: #fafafa;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .agent-card select {
+            flex-grow: 1;
+            padding: 5px;
+            font-size: 12px;
+        }
+
+        .agent-preview {
+            width: 48px;
+            height: 48px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .agent-preview img {
+            width: 48px;
+            height: 48px;
+            object-fit: none;
+            object-position: 0 0;
+            image-rendering: pixelated;
+        }
+
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+            width: 100%;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #2980b9;
         }
 
         .coord-list {
@@ -123,80 +151,35 @@
         }
 
         .coord-item {
-            background: #f8f9fa;
+            border: 1px solid #eee;
             padding: 10px;
             border-radius: 4px;
-            border: 1px solid #eee;
-            display: flex;
-            flex-direction: column;
             cursor: pointer;
+            text-align: center;
         }
 
         .coord-item.active {
-            border-color: #e94560;
-            background: #ffebee;
+            background: #e8f4fd;
+            border-color: #3498db;
         }
 
-        .coord-item strong {
-            display: block;
-            margin-bottom: 4px;
-            color: #1a1a2e;
-        }
-
-        .coord-values {
-            font-family: monospace;
-            color: #666;
-        }
-
-        .upload-row {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            margin-top: 5px;
-        }
-
-        input[type="file"] {
-            font-size: 12px;
-        }
-
-        button {
-            background: #4caf50;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            width: 100%;
-            font-weight: bold;
-        }
-
-        button:hover {
-            background: #45a049;
-        }
-
-        button.btn-upload {
-            background: #2196f3;
-            padding: 6px 10px;
-            width: auto;
-            font-weight: normal;
-        }
-
-        button.btn-upload:hover {
-            background: #1976d2;
-        }
-
-        #save-status {
-            margin-top: 10px;
-            font-weight: bold;
-            text-align: center;
+        .pin {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #e74c3c;
+            border-radius: 50%;
+            border: 2px solid white;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
 
         .toast {
             position: fixed;
-            bottom: 20px;
+            top: 20px;
             right: 20px;
-            background: #333;
+            background: #2ecc71;
             color: white;
             padding: 12px 24px;
             border-radius: 4px;
@@ -204,377 +187,447 @@
             transition: opacity 0.3s;
             z-index: 1000;
         }
-
-        .instructions {
-            font-size: 13px;
-            color: #666;
-            margin-bottom: 15px;
-            background: #e3f2fd;
-            padding: 10px;
-            border-radius: 4px;
-            border-left: 4px solid #2196f3;
-        }
     </style>
 </head>
 
 <body>
 
     <div class="header">
-        <div><strong>🐾 Star Office UI</strong> 后台配置中心</div>
-        <a href="/"
-            style="color: white; text-decoration: none; border: 1px solid white; padding: 4px 10px; border-radius: 4px; font-size: 14px;">返回大图</a>
+        <div><strong>🐾 Star Office UI</strong> 群像控制台</div>
+        <button onclick="window.location.href='/'"
+            style="color:white; background:transparent; border:1px solid white; padding:4px 12px; border-radius:4px; font-size:14px; cursor:pointer;">↩
+            返回监控大厅</button>
     </div>
 
     <div class="container">
-        <!-- 坐标地图区域 -->
+        <!-- LEFT: Map + Anchors -->
         <div class="map-section">
-            <div class="instructions">
-                <strong>💡 如何配置地图坐标？</strong><br>
-                1. 在右侧面板点击选中你要配置的区域（如“办公桌”）。<br>
-                2. 鼠标点击下方地图上的位置，即可自动获取十字准星坐标并保存！
-            </div>
-            <div class="map-container" id="map-container">
+            <h2>🗺️ 坐标系设定</h2>
+            <p style="font-size: 13px; color: #666; margin-bottom: 15px;">
+                工作区（💻⌨️🚨）<b>点击</b>设定具体工位坐标；休闲区（🛋️☕）<b>拖拽框选</b>活动范围。</p>
+            <div class="map-container" id="map-container" onmousedown="startDrag(event)" onmousemove="onDrag(event)"
+                onmouseup="endDrag(event)" onmouseleave="endDrag(event)">
                 <img id="map-preview" src="/static/office_bg.png" alt="Office Background">
                 <div id="pins-layer"></div>
+                <div id="drag-rect"
+                    style="position:absolute;border:2px dashed #e74c3c;background:rgba(231,76,60,0.15);display:none;pointer-events:none;">
+                </div>
             </div>
 
+            <div style="display: flex; gap: 10px; margin-top: 15px; align-items: center;">
+                <input type="file" id="bg-upload" accept="image/*" style="font-size:12px;">
+                <button class="btn" style="width: auto; font-size:13px; padding:8px 14px;"
+                    onclick="uploadBg()">上传替换图纸</button>
+            </div>
+
+            <h2 style="margin-top: 25px;">📍 区域区块设置</h2>
+            <p style="font-size: 12px; color: #666; margin-bottom: 10px;">选中区域后，在上方地图<b>拖拽</b>画出活动区块</p>
+            <div class="coord-list" id="coord-list">
+                <div class="coord-item" onclick="selectArea('slacking')" id="card-slacking">🛋️ 休闲区（摸鱼）</div>
+                <div class="coord-item" onclick="selectArea('coffee')" id="card-coffee">☕ 茶水间（咖啡）</div>
+                <div class="coord-item" onclick="selectArea('workdesk')" id="card-workdesk">💻 办公桌（执行/研究/写文档）</div>
+                <div class="coord-item" onclick="selectArea('editdesk')" id="card-editdesk">⌨️ 编辑台（写代码）</div>
+                <div class="coord-item" onclick="selectArea('alert')" id="card-alert">🚨 警报区（出错）</div>
+            </div>
         </div>
 
-        <!-- 控件面板 -->
+        <!-- RIGHT: Agent Skins + Config + Save -->
         <div class="controls-section">
-            <h2>🌍 基本场景设置</h2>
-
             <div class="form-group">
-                <label>办公室牌匾配置</label>
-                <input type="text" id="plaque-text" value="大龙的海鲜市场办公室">
+                <label>办公室牌匾名称</label>
+                <input type="text" id="plaque-text" value="Star Office 群像大厅">
             </div>
 
+            <h2>👾 Agent 皮肤分配站</h2>
+            <p style="font-size: 12px; color: #666; margin-bottom: 10px;">为每个 Agent 绑定像素化身</p>
+            <div id="agents-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <!-- Dynamically populated -->
+            </div>
+
+            <h2 style="margin-top: 25px;">💬 对话流配置</h2>
             <div class="form-group">
-                <label>办公室背景平面图 (1200x900 推荐)</label>
-                <div class="upload-row">
-                    <input type="file" id="bg-upload" accept="image/*">
-                    <button class="btn-upload" onclick="uploadImage('bg-upload', 'office_bg')">上传并替换</button>
-                </div>
+                <label>日常闲聊 (以英文逗号隔开)</label>
+                <input type="text" id="bubble-idle" value="好无聊啊,什么时候下班,今天吃什么">
+            </div>
+            <div class="form-group">
+                <label>工作独白</label>
+                <input type="text" id="bubble-exec" value="努力搬砖中...,代码编译中...,在跑脚本了">
+            </div>
+            <div class="form-group">
+                <label>上帝交互 (点击触发)</label>
+                <input type="text" id="bubble-interact" value="老板你找我？,别点我我在工作！,好渴想喝咖啡">
             </div>
 
-            <div class="form-group" style="display: flex; align-items: flex-end; gap: 15px;">
-                <div style="flex-grow: 1;">
-                    <label>角色皮肤</label>
-                    <select id="avatar-select" onchange="changeAvatarPreset()">
-                        <option value="slime">原神风史莱姆 (默认)</option>
-                        <option value="ghost">呆萌小幽灵</option>
-                        <option value="kitty">橙色治愈猫</option>
-                        <option value="crab">横行霸道蟹</option>
-                        <option value="duck">大嘴鸭</option>
-                        <option value="penguin">极地企鹅</option>
-                        <option value="panda">国宝熊猫</option>
-                        <option value="dog">看门修勾</option>
-                        <option value="bunny">长耳兔兔</option>
-                        <option value="frog">旅行青蛙</option>
-                        <option value="fox">九尾小狐</option>
-                        <option value="bear">呆呆棕熊</option>
-                        <option value="custom">上传自定义图集...</option>
-                    </select>
-                </div>
-                <div id="avatar-preview-container"
-                    style="width: 48px; height: 48px; overflow: hidden; border: 2px solid #ccc; border-radius: 4px; background: #fff; flex-shrink: 0; display: none;">
-                    <img id="avatar-preview-img" src="" style="height: 48px; display: block;">
-                </div>
-            </div>
-
-            <div class="form-group" id="custom-avatar-upload"
-                style="display: none; background: #f8f9fa; padding: 10px; border-radius: 4px; border: 1px solid #ddd;">
-                <label style="font-size: 12px;">上传自定义图集 (宽192 x 高48，包含 待机/眨眼/走动1/走动2 4帧)</label>
-                <div class="upload-row">
-                    <input type="file" id="avatar-sheet-upload" accept="image/png">
-                    <button class="btn-upload"
-                        onclick="uploadImage('avatar-sheet-upload', 'avatar_sheetUrl')">上传图集</button>
-                </div>
-            </div>
-
-            <h2 style="margin-top: 30px;">📍 坐标区域配置</h2>
-            <p style="font-size: 12px; color: #666;">点击卡片激活拾取模式，然后在左侧地图上点击定位。</p>
-            <div class="coord-list" id="coord-list">
-                <!-- 动态生成 -->
-            </div>
-
-            <h2 style="margin-top: 30px;">💬 状态气泡配置</h2>
-            <p style="font-size: 12px; color: #666;">用英文逗号 , 隔开多个气泡以实现随机</p>
-            <div id="bubble-list">
-                <!-- 动态生成 -->
-            </div>
-
-            <button onclick="saveConfig()" style="margin-top: 20px;">💾 保存所有配置应用到前台</button>
-            <div id="save-status"></div>
+            <button class="btn" style="margin-top: 20px;" onclick="saveConfig()">💾 保存所有配置并生效</button>
         </div>
     </div>
 
-    <div class="toast" id="toast">保存成功！</div>
+    <div class="toast" id="toast">保存成功！去首页看看吧！</div>
 
     <script>
         let config = {};
+        let agentList = [];
         let activeArea = null;
 
-        // 区域显示名称映射
-        const areaNameMap = {
-            "workdesk": "工作桌",
-            "editdesk": "代码编辑台",
-            "coffee": "咖啡机 (喝咖啡区)",
-            "slacking": "摸鱼角 (摸鱼区)",
-            "alert": "警报区 (出错)"
+        // 中英文区域标签映射
+        const AREA_LABELS = {
+            'slacking': '🛋️ 休闲区',
+            'coffee': '☕ 茶水间',
+            'workdesk': '💻 办公桌',
+            'editdesk': '⌨️ 编辑台',
+            'alert': '🚨 警报区'
         };
 
-        // 状态名称映射
-        const stateNameMap = {
-            "idle": "休息待命",
-            "writing": "文档编写",
-            "researching": "信息检索",
-            "executing": "执行任务",
-            "editing": "代码修改",
-            "syncing": "云端同步",
-            "error": "出错告警"
-        };
+        const AVAILABLE_SKINS = [
+            { id: 'slime', name: '原神风史莱姆' },
+            { id: 'ghost', name: '呆萌小幽灵' },
+            { id: 'kitty', name: '橙色治愈猫' },
+            { id: 'crab', name: '横行霸道蟹' },
+            { id: 'duck', name: '可爱大嘴鸭' },
+            { id: 'penguin', name: '极地企鹅' },
+            { id: 'panda', name: '国宝小熊猫' },
+            { id: 'dog', name: '看门修勾' },
+            { id: 'bunny', name: '长耳仙女兔' },
+            { id: 'frog', name: '旅行青蛙' },
+            { id: 'fox', name: '九尾小狐狸' },
+            { id: 'bear', name: '呆呆棕熊' },
+            { id: 'lobster', name: '经典小龙虾' },
+            { id: 'robot', name: '赛博机器人' },
+            { id: 'cat', name: '黑白原味猫' }
+        ];
 
-
-        async function loadConfig() {
+        async function init() {
             try {
-                const res = await fetch('/api/config');
-                config = await res.json();
-
-                document.getElementById('plaque-text').value = config.plaque_text || '';
-                document.getElementById('map-preview').src = config.office_bg || '/static/office_bg.png';
-
-                // Set preset dropdown if matched
-                const currentSheetUrl = config.avatar_sheetUrl || '/static/slime.png';
-                if (currentSheetUrl.includes("slime")) document.getElementById('avatar-select').value = "slime";
-                else if (currentSheetUrl.includes("ghost")) document.getElementById('avatar-select').value = "ghost";
-                else if (currentSheetUrl.includes("kitty")) document.getElementById('avatar-select').value = "kitty";
-                else if (currentSheetUrl.includes("crab")) document.getElementById('avatar-select').value = "crab";
-                else if (currentSheetUrl.includes("duck")) document.getElementById('avatar-select').value = "duck";
-                else if (currentSheetUrl.includes("penguin")) document.getElementById('avatar-select').value = "penguin";
-                else if (currentSheetUrl.includes("panda")) document.getElementById('avatar-select').value = "panda";
-                else if (currentSheetUrl.includes("dog")) document.getElementById('avatar-select').value = "dog";
-                else if (currentSheetUrl.includes("bunny")) document.getElementById('avatar-select').value = "bunny";
-                else if (currentSheetUrl.includes("frog")) document.getElementById('avatar-select').value = "frog";
-                else if (currentSheetUrl.includes("fox")) document.getElementById('avatar-select').value = "fox";
-                else if (currentSheetUrl.includes("bear")) document.getElementById('avatar-select').value = "bear";
-                else {
-                    document.getElementById('avatar-select').value = "custom";
-                    document.getElementById('custom-avatar-upload').style.display = "block";
+                try {
+                    // 1. Fetch Agents safely
+                    let res = await fetch('/agents');
+                    agentList = await res.json();
+                    if (!agentList || !Array.isArray(agentList) || agentList.length === 0) {
+                        agentList = ["main"];
+                    }
+                } catch (e) {
+                    console.warn("Failed to fetch /agents, using default:", e);
+                    agentList = ["main"];
                 }
 
-                updateAvatarPreview(currentSheetUrl);
+                // 2. Fetch Config
+                res = await fetch('/api/config');
+                config = await res.json();
 
-                renderCoordList();
+                // Initialize required structures if missing
+                if (!config.avatars) config.avatars = {};
+                if (!config.areas) config.areas = {
+                    "slacking": { "x": 958, "y": 277 },
+                    "coffee": { "x": 868, "y": 663 },
+                    "workdesk": { "x": 339, "y": 344 },
+                    "editdesk": { "x": 250, "y": 700 },
+                    "alert": { "x": 256, "y": 588 }
+                };
+                if (!config.bubbles) config.bubbles = {};
+
+                // Fill DOM
+                document.getElementById('plaque-text').value = config.plaque_text || 'Star Office 群像大厅';
+                if (config.office_bg) {
+                    // office_bg might be a full path like '/static/office_bg.png' or just 'office_bg.png'
+                    let bgSrc = config.office_bg.startsWith('/') ? config.office_bg : `/static/${config.office_bg}`;
+                    document.getElementById('map-preview').src = bgSrc;
+                }
+
+                if (config.bubbles.idle) document.getElementById('bubble-idle').value = config.bubbles.idle.join(',');
+                if (config.bubbles.executing) document.getElementById('bubble-exec').value = config.bubbles.executing.join(',');
+                if (config.bubbles.interactive) document.getElementById('bubble-interact').value = config.bubbles.interactive.join(',');
+
+
+                renderAgentCards();
                 renderPins();
-                renderBubbleList();
-            } catch (err) {
-                console.error("Failed to load config", err);
-                showToast("配置加载失败");
+
+            } catch (e) {
+                console.error("Initialization failed:", e);
+                showToast("连接后台失败，请检查服务状态");
             }
         }
 
-        function renderCoordList() {
-            const list = document.getElementById('coord-list');
-            list.innerHTML = '';
+        function renderAgentCards() {
+            const container = document.getElementById('agents-list');
+            container.innerHTML = '';
 
-            if (!config.areas) return;
+            agentList.forEach((agentId, index) => {
+                let currentAvatar = config.avatars[agentId] || `/static/slime.png`;
+                let currentSkinId = currentAvatar.split('/').pop().split('.')[0];
 
-            for (let [key, val] of Object.entries(config.areas)) {
-                const item = document.createElement('div');
-                item.className = 'coord-item';
-                if (key === activeArea) item.classList.add('active');
-
-                const title = areaNameMap[key] || key;
-                item.innerHTML = `
-                    <strong>${title}</strong>
-                    <span class="coord-values">X: ${Math.round(val.x)}, Y: ${Math.round(val.y)}</span>
+                let card = document.createElement('div');
+                card.className = 'agent-card';
+                card.innerHTML = `
+                    <div class="agent-preview">
+                        <img id="preview-${agentId}" src="/static/${currentSkinId}.png">
+                    </div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-weight:bold; font-size:12px; margin-bottom:4px;">${agentId}</div>
+                        <select id="select-${agentId}" onchange="updateSkinPreview('${agentId}')" style="width:100%;">
+                            ${AVAILABLE_SKINS.map(s => `<option value="${s.id}" ${s.id === currentSkinId ? 'selected' : ''}>${s.name}</option>`).join('')}
+                        </select>
+                    </div>
                 `;
-                item.onclick = () => selectArea(key);
-                list.appendChild(item);
-            }
+                container.appendChild(card);
+            });
         }
 
-        function renderBubbleList() {
-            const bList = document.getElementById('bubble-list');
-            bList.innerHTML = '';
-
-            if (!config.bubbles) return;
-
-            for (let [key, val] of Object.entries(config.bubbles)) {
-                const group = document.createElement('div');
-                group.className = 'form-group';
-
-                const title = stateNameMap[key] || key;
-                group.innerHTML = `
-                    <label>${title}</label>
-                    <input type="text" id="bubble-${key}" value="${(val || []).join(',')}">
-                `;
-                bList.appendChild(group);
-            }
+        function updateSkinPreview(agentId) {
+            let select = document.getElementById(`select-${agentId}`);
+            let preview = document.getElementById(`preview-${agentId}`);
+            preview.src = `/static/${select.value}.png`;
         }
 
-        function selectArea(key) {
-            activeArea = key;
-            renderCoordList();
+        function selectArea(areaKey) {
+            activeArea = areaKey;
+            document.querySelectorAll('.coord-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`card-${areaKey}`).classList.add('active');
+            renderPins();
+        }
+
+        // ── Drag / click system ──
+        // Work areas use point-click, idle areas use drag-to-draw
+        const POINT_AREAS = new Set(['workdesk', 'editdesk', 'alert']);
+        let isDragging = false;
+        let dragStartX = 0, dragStartY = 0;
+
+        function getMapCoords(e) {
+            const img = document.getElementById('map-preview');
+            const rect = img.getBoundingClientRect();
+            const scaleX = 1200 / rect.width;
+            const scaleY = 900 / rect.height;
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY,
+                cssX: e.clientX - rect.left,
+                cssY: e.clientY - rect.top,
+                scaleX, scaleY
+            };
+        }
+
+        function startDrag(e) {
+            if (!activeArea) { alert('请先在下方选择要设置的区域！'); return; }
+            e.preventDefault();
+            const c = getMapCoords(e);
+
+            // Work areas: point-click, set immediately
+            if (POINT_AREAS.has(activeArea)) {
+                config.areas[activeArea] = { x: Math.round(c.x), y: Math.round(c.y) };
+                renderPins();
+                return;
+            }
+
+            // Idle areas: start drag
+            isDragging = true;
+            dragStartX = c.x;
+            dragStartY = c.y;
+            const dr = document.getElementById('drag-rect');
+            dr.style.left = c.cssX + 'px';
+            dr.style.top = c.cssY + 'px';
+            dr.style.width = '0px';
+            dr.style.height = '0px';
+            dr.style.display = 'block';
+        }
+
+        function onDrag(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            const c = getMapCoords(e);
+            const img = document.getElementById('map-preview');
+            const rect = img.getBoundingClientRect();
+            const startCssX = dragStartX / c.scaleX;
+            const startCssY = dragStartY / c.scaleY;
+            const dr = document.getElementById('drag-rect');
+            const left = Math.min(startCssX, c.cssX);
+            const top = Math.min(startCssY, c.cssY);
+            const w = Math.abs(c.cssX - startCssX);
+            const h = Math.abs(c.cssY - startCssY);
+            dr.style.left = left + 'px';
+            dr.style.top = top + 'px';
+            dr.style.width = w + 'px';
+            dr.style.height = h + 'px';
+        }
+
+        function endDrag(e) {
+            if (!isDragging) return;
+            isDragging = false;
+            document.getElementById('drag-rect').style.display = 'none';
+            if (!activeArea) return;
+            const c = getMapCoords(e);
+            const x = Math.round(Math.min(dragStartX, c.x));
+            const y = Math.round(Math.min(dragStartY, c.y));
+            const w = Math.round(Math.abs(c.x - dragStartX));
+            const h = Math.round(Math.abs(c.y - dragStartY));
+
+            if (w < 20 && h < 20) {
+                // Too small drag = treat as rectangle with default 100x80
+                config.areas[activeArea] = { x: Math.round(c.x) - 50, y: Math.round(c.y) - 40, w: 100, h: 80 };
+            } else {
+                config.areas[activeArea] = { x, y, w, h };
+            }
             renderPins();
         }
 
         function renderPins() {
             const layer = document.getElementById('pins-layer');
             layer.innerHTML = '';
-
-            if (!config.areas) return;
-
-            // 获取图片的实际渲染尺寸比例
             const img = document.getElementById('map-preview');
-            // 假设默认原图是 1200x900
             const scaleX = img.clientWidth / 1200;
             const scaleY = img.clientHeight / 900;
 
-            for (let [key, val] of Object.entries(config.areas)) {
-                const pin = document.createElement('div');
-                pin.className = 'pin';
+            const AREA_COLORS = {
+                'slacking': 'rgba(46,204,113,0.3)',
+                'coffee': 'rgba(230,126,34,0.3)',
+                'workdesk': 'rgba(52,152,219,0.3)',
+                'editdesk': 'rgba(155,89,182,0.3)',
+                'alert': 'rgba(231,76,60,0.3)'
+            };
+            const AREA_BORDERS = {
+                'slacking': '#2ecc71',
+                'coffee': '#e67e22',
+                'workdesk': '#3498db',
+                'editdesk': '#9b59b6',
+                'alert': '#e74c3c'
+            };
 
-                // 计算在屏幕上的像素位置
-                pin.style.left = (val.x * scaleX) + 'px';
-                pin.style.top = (val.y * scaleY) + 'px';
+            Object.keys(config.areas).forEach(key => {
+                let area = config.areas[key];
+                let el = document.createElement('div');
+                el.style.position = 'absolute';
+                el.style.pointerEvents = 'none';
 
-                if (key === activeArea) {
-                    pin.style.background = '#4caf50';
-                    pin.style.transform = 'translate(-50%, -50%) scale(1.5)';
-                    pin.style.zIndex = '10';
+                if (area.w && area.h) {
+                    // Rectangle
+                    el.style.left = (area.x * scaleX) + 'px';
+                    el.style.top = (area.y * scaleY) + 'px';
+                    el.style.width = (area.w * scaleX) + 'px';
+                    el.style.height = (area.h * scaleY) + 'px';
+                    el.style.background = AREA_COLORS[key] || 'rgba(100,100,100,0.2)';
+                    el.style.border = '2px solid ' + (AREA_BORDERS[key] || '#666');
+                    el.style.borderRadius = '4px';
+                    if (key === activeArea) {
+                        el.style.borderWidth = '3px';
+                        el.style.borderStyle = 'dashed';
+                    }
+                } else {
+                    // Legacy point: draw as small circle
+                    el.style.left = (area.x * scaleX) + 'px';
+                    el.style.top = (area.y * scaleY) + 'px';
+                    el.style.width = '12px';
+                    el.style.height = '12px';
+                    el.style.background = AREA_BORDERS[key] || '#e74c3c';
+                    el.style.borderRadius = '50%';
+                    el.style.border = '2px solid white';
+                    el.style.transform = 'translate(-50%, -50%)';
+                    el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
                 }
 
-                const label = document.createElement('div');
-                label.className = 'pin-label';
-                label.innerText = areaNameMap[key] || key;
-                pin.appendChild(label);
+                // Label
+                let label = document.createElement('div');
+                label.innerText = AREA_LABELS[key] || key;
+                label.style.position = 'absolute';
+                label.style.top = '-18px';
+                label.style.left = '2px';
+                label.style.fontSize = '10px';
+                label.style.background = 'white';
+                label.style.padding = '1px 4px';
+                label.style.borderRadius = '2px';
+                label.style.whiteSpace = 'nowrap';
+                label.style.color = AREA_BORDERS[key] || '#333';
+                label.style.fontWeight = 'bold';
+                el.appendChild(label);
 
-                layer.appendChild(pin);
-            }
+                layer.appendChild(el);
+            });
         }
 
-        // 监听图片点击获取坐标
-        document.getElementById('map-container').addEventListener('click', function (e) {
-            if (!activeArea) {
-                showToast("请先在右侧选择要设置坐标的区域");
+        async function uploadBg() {
+            const fileInput = document.getElementById('bg-upload');
+            if (fileInput.files.length === 0) {
+                alert("请先选择图片文件");
                 return;
             }
-
-            const rect = this.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-
-            const img = document.getElementById('map-preview');
-            const scaleX = 1200 / img.clientWidth;
-            const scaleY = 900 / img.clientHeight;
-
-            const rawX = Math.round(x * scaleX);
-            const rawY = Math.round(y * scaleY);
-
-            config.areas[activeArea] = { x: rawX, y: rawY };
-
-            renderCoordList();
-            renderPins();
-        });
-
-        // 缩放窗口时重绘 pins
-        window.addEventListener('resize', renderPins);
-
-        async function uploadImage(inputId, configKey) {
-            const fileInput = document.getElementById(inputId);
-            if (!fileInput.files.length) {
-                showToast("请先选择图片文件");
-                return;
-            }
-
+            const file = fileInput.files[0];
             const formData = new FormData();
-            formData.append("file", fileInput.files[0]);
+            formData.append('image', file);
+            formData.append('filename', 'office_bg_' + Date.now() + '.png');
 
             try {
-                const res = await fetch('/api/upload/image', {
+                const response = await fetch('/api/upload/image', {
                     method: 'POST',
                     body: formData
                 });
-                const data = await res.json();
-                if (data.status === 'success') {
-                    config[configKey] = data.url;
-                    if (configKey === 'office_bg') {
-                        document.getElementById('map-preview').src = data.url;
-                    }
-                    saveConfig(true); // 静默保存
-                    showToast("上传成功");
-                } else {
-                    showToast("上传失败: " + data.message);
+                const result = await response.json();
+                if (result.success) {
+                    config.office_bg = result.filename;
+                    document.getElementById('map-preview').src = `/static/${result.filename}`;
+                    showToast("背景上传成功！请点击最后保存应用。");
                 }
-            } catch (e) {
-                showToast("上传发生错误");
+            } catch (error) {
+                console.error('上传失败:', error);
+                alert('上传失败，请检查控制台。');
             }
         }
 
-        function updateAvatarPreview(url) {
-            const container = document.getElementById('avatar-preview-container');
-            const img = document.getElementById('avatar-preview-img');
-            if (url && !url.includes('custom') && url !== 'custom') {
-                container.style.display = 'block';
-                img.src = url;
-            } else {
-                container.style.display = 'none';
-            }
-        }
-
-        function changeAvatarPreset() {
-            const val = document.getElementById('avatar-select').value;
-            const uploadDiv = document.getElementById('custom-avatar-upload');
-            if (val === 'custom') {
-                uploadDiv.style.display = 'block';
-                updateAvatarPreview('custom');
-            } else {
-                uploadDiv.style.display = 'none';
-                config.avatar_sheetUrl = `/static/${val}.png`;
-                updateAvatarPreview(config.avatar_sheetUrl);
-                saveConfig(true);
-                showToast("角色切换成功，请刷新前台查看");
-            }
-        }
-
-        async function saveConfig(silent = false) {
+        async function saveConfig() {
+            // Update models
             config.plaque_text = document.getElementById('plaque-text').value;
 
-            // 收集所有气泡
-            if (config.bubbles) {
-                for (let key in config.bubbles) {
-                    const el = document.getElementById(`bubble-${key}`);
-                    if (el) {
-                        config.bubbles[key] = el.value.split(',').map(s => s.trim()).filter(s => s);
-                    }
-                }
-            }
+            // Build dialogue models
+            if (!config.bubbles) config.bubbles = {};
+            config.bubbles.idle = document.getElementById('bubble-idle').value.split(',').map(s => s.trim()).filter(s => s);
+            config.bubbles.executing = document.getElementById('bubble-exec').value.split(',').map(s => s.trim()).filter(s => s);
+            config.bubbles.interactive = document.getElementById('bubble-interact').value.split(',').map(s => s.trim()).filter(s => s);
+
+            config.bubbles.writing = config.bubbles.executing;
+            config.bubbles.researching = config.bubbles.executing;
+            config.bubbles.editing = config.bubbles.executing;
+
+            // Collect assigned avatars
+            if (!config.avatars) config.avatars = {};
+            agentList.forEach(agentId => {
+                let skinId = document.getElementById(`select-${agentId}`).value;
+                config.avatars[agentId] = `/static/${skinId}.png`;
+            });
+
+            // States mapping: map state names to ACTUAL area keys from config.json
+            config.states = {
+                "idle": { "name": "待命", "areas": ["slacking"] },
+                "writing": { "name": "整理文档", "areas": ["workdesk"] },
+                "executing": { "name": "执行任务", "areas": ["workdesk"] },
+                "researching": { "name": "搜索信息", "areas": ["workdesk"] },
+                "editing": { "name": "修改代码", "areas": ["editdesk"] },
+                "syncing": { "name": "同步备份", "areas": ["coffee"] },
+                "error": { "name": "出错了", "areas": ["alert"] }
+            };
 
             try {
-                const res = await fetch('/api/config', {
+                const response = await fetch('/api/config', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(config)
                 });
-                if (res.ok) {
-                    if (!silent) showToast("配置已保存！你可以返回前台查看。");
+
+                if (response.ok) {
+                    showToast("配置保存成功！");
+                } else {
+                    showToast("保存失败：" + response.statusText);
                 }
-            } catch (err) {
-                showToast("保存失败");
+            } catch (error) {
+                console.error('保存失败:', error);
+                showToast("保存请求发生错误");
             }
         }
 
         function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.innerText = msg;
-            t.style.opacity = '1';
-            setTimeout(() => t.style.opacity = '0', 3000);
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.style.opacity = 1;
+            setTimeout(() => { toast.style.opacity = 0; }, 3000);
         }
 
-        // 初始化
-        window.onload = loadConfig;
+        // Initialize on load
+        window.onload = init;
     </script>
 </body>
 

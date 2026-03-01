@@ -87,6 +87,20 @@ if not os.path.exists(STATE_FILE):
     save_state(DEFAULT_STATE)
 
 
+OPENCLAW_CONFIG = "/home/jason/.openclaw/openclaw.json"
+
+def get_agents_list():
+    try:
+        with open(OPENCLAW_CONFIG, "r", encoding="utf-8") as f:
+            oc_config = json.load(f)
+            return [agent["id"] for agent in oc_config.get("agents", {}).get("list", [])]
+    except Exception:
+        return ["main"]
+
+@app.route("/agents", methods=["GET"])
+def api_get_agents():
+    return jsonify(get_agents_list())
+
 @app.route("/", methods=["GET"])
 def index():
     """Serve the pixel office UI"""
