@@ -463,9 +463,16 @@
         // ─── Movement ──────────────────────────────────────────────────
         function moveAgent(a, time) {
             if (Math.random() < 0.005 && (!a.disableRandomWander || time > a.disableRandomWander)) {
-                let pt = randomPtInArea(a.currentAreaKey);
-                a.targetX = pt.x;
-                a.targetY = pt.y;
+                // 工作区（槽位数组）：只做小幅抖动，不重新分配槽
+                const area = uiConfig.areas && uiConfig.areas[a.currentAreaKey];
+                if (Array.isArray(area)) {
+                    a.targetX += (Math.random() - 0.5) * 20;
+                    a.targetY += (Math.random() - 0.5) * 20;
+                } else {
+                    let pt = randomPtInArea(a.currentAreaKey);
+                    a.targetX = pt.x;
+                    a.targetY = pt.y;
+                }
             }
 
             const dx = a.targetX - a.sprite.x;
