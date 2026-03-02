@@ -297,13 +297,26 @@
             </div>
 
             <h2 style="margin-top: 25px;">📍 区域区块设置</h2>
-            <p style="font-size: 12px; color: #666; margin-bottom: 10px;">选中区域后，在上方地图<b>拖拽</b>画出活动区块</p>
+            <p style="font-size: 12px; color: #666; margin-bottom: 6px;">选中区域后，在上方地图<b>拖拽</b>画出活动区块</p>
+            <p style="font-size: 11px; color: #3498db; margin-bottom: 10px;">💡 工作区（办公桌/思考区/编辑台/警报区）：每次点击追加一个工位槽，多个 Agent 各占一格互不重叠</p>
             <div class="coord-list" id="coord-list">
                 <div class="coord-item" onclick="selectArea('slacking')" id="card-slacking">🛋️ 休闲区（摸鱼）</div>
                 <div class="coord-item" onclick="selectArea('coffee')" id="card-coffee">☕ 茶水间（咖啡）</div>
-                <div class="coord-item" onclick="selectArea('workdesk')" id="card-workdesk">💻 办公桌（执行/写文档）</div>
-                <div class="coord-item" onclick="selectArea('thinkdesk')" id="card-thinkdesk">🧠 思考区（研究/分析）</div>
-                <div class="coord-item" onclick="selectArea('editdesk')" id="card-editdesk">⌨️ 编辑台（写代码）</div>
+                <div class="coord-item" onclick="selectArea('workdesk')" id="card-workdesk">
+                    💻 办公桌（执行/写文档）
+                    <span id="badge-workdesk" style="font-size:10px;color:#3498db;margin-left:4px;"></span>
+                    <button onclick="event.stopPropagation();clearSlots('workdesk')" style="float:right;font-size:10px;padding:1px 5px;background:#fee2e2;border:1px solid #fca5a5;border-radius:3px;cursor:pointer;color:#dc2626;">清空</button>
+                </div>
+                <div class="coord-item" onclick="selectArea('thinkdesk')" id="card-thinkdesk">
+                    🧠 思考区（研究/分析）
+                    <span id="badge-thinkdesk" style="font-size:10px;color:#f1c40f;margin-left:4px;"></span>
+                    <button onclick="event.stopPropagation();clearSlots('thinkdesk')" style="float:right;font-size:10px;padding:1px 5px;background:#fee2e2;border:1px solid #fca5a5;border-radius:3px;cursor:pointer;color:#dc2626;">清空</button>
+                </div>
+                <div class="coord-item" onclick="selectArea('editdesk')" id="card-editdesk">
+                    ⌨️ 编辑台（写代码）
+                    <span id="badge-editdesk" style="font-size:10px;color:#9b59b6;margin-left:4px;"></span>
+                    <button onclick="event.stopPropagation();clearSlots('editdesk')" style="float:right;font-size:10px;padding:1px 5px;background:#fee2e2;border:1px solid #fca5a5;border-radius:3px;cursor:pointer;color:#dc2626;">清空</button>
+                </div>
                 <div class="coord-item" onclick="selectArea('alert')" id="card-alert">🚨 警报区（出错）</div>
             </div>
         </div>
@@ -418,6 +431,7 @@
 
                 renderAgentCards();
                 renderPins();
+                updateAllBadges();
 
             } catch (e) {
                 console.error("Initialization failed:", e);
@@ -464,10 +478,34 @@
         }
 
         // ── Drag / click system ──
-        // Work areas use point-click, idle areas use drag-to-draw
+        // Work areas use point-click (append slots), idle areas use drag-to-draw
         const POINT_AREAS = new Set(['workdesk', 'thinkdesk', 'editdesk', 'alert']);
         let isDragging = false;
         let dragStartX = 0, dragStartY = 0;
+
+        // ── Slot management helpers ──
+        function getSlots(areaKey) {
+            const a = config.areas[areaKey];
+            if (!a) return [];
+            return Array.isArray(a) ? a : [a];
+        }
+
+        function clearSlots(areaKey) {
+            config.areas[areaKey] = [];
+            updateSlotBadge(areaKey);
+            renderPins();
+        }
+
+        function updateSlotBadge(areaKey) {
+            const badge = document.getElementById(`badge-${areaKey}`);
+            if (!badge) return;
+            const count = getSlots(areaKey).length;
+            badge.textContent = count > 0 ? `${count} 个工位` : '未设置';
+        }
+
+        function updateAllBadges() {
+            ['workdesk', 'thinkdesk', 'editdesk'].forEach(updateSlotBadge);
+        }
 
         function getMapCoords(e) {
             const img = document.getElementById('map-preview');
@@ -488,9 +526,19 @@
             e.preventDefault();
             const c = getMapCoords(e);
 
-            // Work areas: point-click, set immediately
+            // Work areas: point-click → append a new slot to the array
             if (POINT_AREAS.has(activeArea)) {
-                config.areas[activeArea] = { x: Math.round(c.x), y: Math.round(c.y) };
+                const newSlot = { x: Math.round(c.x), y: Math.round(c.y) };
+                if (activeArea === 'alert') {
+                    // alert 保持单点（覆盖）
+                    config.areas[activeArea] = newSlot;
+                } else {
+                    // workdesk / thinkdesk / editdesk：追加到槽位数组
+                    const slots = getSlots(activeArea);
+                    slots.push(newSlot);
+                    config.areas[activeArea] = slots;
+                    updateSlotBadge(activeArea);
+                }
                 renderPins();
                 return;
             }
@@ -569,55 +617,79 @@
                 'editdesk': '#9b59b6',
                 'alert': '#e74c3c'
             };
+            const SLOT_LABELS = { 'workdesk': 'W', 'thinkdesk': 'T', 'editdesk': 'E' };
 
             Object.keys(config.areas).forEach(key => {
                 let area = config.areas[key];
-                let el = document.createElement('div');
-                el.style.position = 'absolute';
-                el.style.pointerEvents = 'none';
+                const color = AREA_BORDERS[key] || '#666';
 
-                if (area.w && area.h) {
-                    // Rectangle
+                // ── 矩形区（休闲区）──
+                if (!Array.isArray(area) && area.w && area.h) {
+                    let el = document.createElement('div');
+                    el.style.position = 'absolute';
+                    el.style.pointerEvents = 'none';
                     el.style.left = (area.x * scaleX) + 'px';
                     el.style.top = (area.y * scaleY) + 'px';
                     el.style.width = (area.w * scaleX) + 'px';
                     el.style.height = (area.h * scaleY) + 'px';
                     el.style.background = AREA_COLORS[key] || 'rgba(100,100,100,0.2)';
-                    el.style.border = '2px solid ' + (AREA_BORDERS[key] || '#666');
+                    el.style.border = '2px solid ' + color;
                     el.style.borderRadius = '4px';
-                    if (key === activeArea) {
-                        el.style.borderWidth = '3px';
-                        el.style.borderStyle = 'dashed';
-                    }
-                } else {
-                    // Legacy point: draw as small circle
-                    el.style.left = (area.x * scaleX) + 'px';
-                    el.style.top = (area.y * scaleY) + 'px';
-                    el.style.width = '12px';
-                    el.style.height = '12px';
-                    el.style.background = AREA_BORDERS[key] || '#e74c3c';
-                    el.style.borderRadius = '50%';
-                    el.style.border = '2px solid white';
-                    el.style.transform = 'translate(-50%, -50%)';
-                    el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+                    if (key === activeArea) { el.style.borderWidth = '3px'; el.style.borderStyle = 'dashed'; }
+                    let label = document.createElement('div');
+                    label.innerText = AREA_LABELS[key] || key;
+                    label.style.cssText = 'position:absolute;top:-18px;left:2px;font-size:10px;background:white;padding:1px 4px;border-radius:2px;white-space:nowrap;font-weight:bold;color:' + color;
+                    el.appendChild(label);
+                    layer.appendChild(el);
+                    return;
                 }
 
-                // Label
-                let label = document.createElement('div');
-                label.innerText = AREA_LABELS[key] || key;
-                label.style.position = 'absolute';
-                label.style.top = '-18px';
-                label.style.left = '2px';
-                label.style.fontSize = '10px';
-                label.style.background = 'white';
-                label.style.padding = '1px 4px';
-                label.style.borderRadius = '2px';
-                label.style.whiteSpace = 'nowrap';
-                label.style.color = AREA_BORDERS[key] || '#333';
-                label.style.fontWeight = 'bold';
-                el.appendChild(label);
+                // ── 槽位数组 或 单点（工作区）──
+                const slots = Array.isArray(area) ? area : (area ? [area] : []);
+                const prefix = SLOT_LABELS[key] || key[0].toUpperCase();
 
-                layer.appendChild(el);
+                slots.forEach((slot, idx) => {
+                    let el = document.createElement('div');
+                    el.style.position = 'absolute';
+                    el.style.left = (slot.x * scaleX) + 'px';
+                    el.style.top = (slot.y * scaleY) + 'px';
+                    el.style.transform = 'translate(-50%, -50%)';
+                    el.style.width = '22px';
+                    el.style.height = '22px';
+                    el.style.background = color;
+                    el.style.borderRadius = '50%';
+                    el.style.border = '2px solid white';
+                    el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.35)';
+                    el.style.display = 'flex';
+                    el.style.alignItems = 'center';
+                    el.style.justifyContent = 'center';
+                    el.style.fontSize = '9px';
+                    el.style.fontWeight = 'bold';
+                    el.style.color = 'white';
+                    el.style.cursor = Array.isArray(area) ? 'pointer' : 'default';
+                    el.style.zIndex = '10';
+                    el.title = Array.isArray(area) ? `${AREA_LABELS[key] || key} ${prefix}${idx + 1}（点击删除）` : (AREA_LABELS[key] || key);
+                    el.innerText = Array.isArray(area) ? `${prefix}${idx + 1}` : prefix;
+
+                    // 点击删除该槽位（仅多槽位工作区）
+                    if (Array.isArray(area)) {
+                        el.addEventListener('click', () => {
+                            config.areas[key].splice(idx, 1);
+                            updateSlotBadge(key);
+                            renderPins();
+                        });
+                    }
+
+                    // 区域标签（仅第一个槽显示）
+                    if (idx === 0) {
+                        let label = document.createElement('div');
+                        label.innerText = AREA_LABELS[key] || key;
+                        label.style.cssText = 'position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:10px;background:white;padding:1px 4px;border-radius:2px;white-space:nowrap;font-weight:bold;pointer-events:none;color:' + color;
+                        el.appendChild(label);
+                    }
+
+                    layer.appendChild(el);
+                });
             });
         }
 

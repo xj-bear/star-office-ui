@@ -242,13 +242,66 @@
         // ─── Helper: random point inside an area (supports {x,y} point or {x,y,w,h} rect) ──
         function randomPtInArea(areaKey) {
             let a = (uiConfig.areas && uiConfig.areas[areaKey]) || { x: 600, y: 450 };
-            if (a.w && a.h) {
+            if (Array.isArray(a)) {
+                // Slot array: pick a random slot
+                let s = a[Math.floor(Math.random() * a.length)] || { x: 600, y: 450 };
+                return { x: s.x + (Math.random() - 0.5) * 20, y: s.y + (Math.random() - 0.5) * 20 };
+            } else if (a.w && a.h) {
                 // Rectangle: random within the rect
                 return { x: a.x + Math.random() * a.w, y: a.y + Math.random() * a.h };
             } else {
                 // Point: random offset ±30px around center
                 return { x: a.x + (Math.random() - 0.5) * 60, y: a.y + (Math.random() - 0.5) * 60 };
             }
+        }
+
+        // ─── Slot 互斥占位（工作区专用）─────────────────────────────────
+        // 格式：{ "workdesk_0": "agentId", "workdesk_1": "agentId2", ... }
+        const slotOccupied = {};
+
+        // 释放某 Agent 在指定区域（或全部区域）的槽位
+        function releaseSlots(agentId, exceptAreaKey) {
+            for (const key of Object.keys(slotOccupied)) {
+                if (slotOccupied[key] !== agentId) continue;
+                // key 格式：areaKey_slotIndex，areaKey 本身可能含下划线，取最后一段为 index
+                const lastUnder = key.lastIndexOf('_');
+                const areaOfKey = key.substring(0, lastUnder);
+                if (areaOfKey !== exceptAreaKey) {
+                    delete slotOccupied[key];
+                }
+            }
+        }
+
+        // 为 Agent 分配工作区槽位，返回目标坐标（互斥）
+        function assignSlot(areaKey, agentId) {
+            const area = uiConfig.areas && uiConfig.areas[areaKey];
+            if (!area) return { x: 600, y: 450 };
+
+            // 矩形区域（休闲区）：直接随机，不需要槽位
+            if (!Array.isArray(area) && area.w && area.h) {
+                return { x: area.x + Math.random() * area.w, y: area.y + Math.random() * area.h };
+            }
+
+            // 转为槽位数组（兼容单点对象）
+            const slots = Array.isArray(area) ? area : [area];
+
+            // 先释放该 Agent 在其他区域的旧槽（切换区域时）
+            releaseSlots(agentId, areaKey);
+
+            // 寻找该 Agent 已占的当前区域槽位，或找空槽
+            for (let i = 0; i < slots.length; i++) {
+                const key = `${areaKey}_${i}`;
+                if (!slotOccupied[key] || slotOccupied[key] === agentId) {
+                    slotOccupied[key] = agentId;
+                    const s = slots[i];
+                    return { x: s.x + (Math.random() - 0.5) * 20, y: s.y + (Math.random() - 0.5) * 20 };
+                }
+            }
+
+            // 所有槽都被占：随机选一个并稍微偏移，避免完全重叠
+            const i = Math.floor(Math.random() * slots.length);
+            const s = slots[i];
+            return { x: s.x + (Math.random() - 0.5) * 40, y: s.y + (Math.random() - 0.5) * 40 };
         }
 
         // ─── Phaser preload ────────────────────────────────────────────
@@ -473,7 +526,7 @@
                             let areaKeys = si.areas || ['workdesk'];
                             if (!Array.isArray(areaKeys)) areaKeys = [areaKeys];
                             a.currentAreaKey = areaKeys[Math.floor(Math.random() * areaKeys.length)];
-                            let pt = randomPtInArea(a.currentAreaKey);
+                            let pt = assignSlot(a.currentAreaKey, a.id);
                             a.targetX = pt.x;
                             a.targetY = pt.y;
 
@@ -487,6 +540,7 @@
                             // Agent just stopped working → return to idle
                             a.currentState = 'idle';
                             a.lastDetail = '';
+                            releaseSlots(a.id, null);   // 释放全部占位
                             let idleAreas = ['slacking', 'coffee'];
                             a.currentAreaKey = idleAreas[Math.floor(Math.random() * idleAreas.length)];
                             let pt = randomPtInArea(a.currentAreaKey);
@@ -506,7 +560,7 @@
                                 let areaKeys = si.areas || ['workdesk'];
                                 if (!Array.isArray(areaKeys)) areaKeys = [areaKeys];
                                 a.currentAreaKey = areaKeys[Math.floor(Math.random() * areaKeys.length)];
-                                let pt = randomPtInArea(a.currentAreaKey);
+                                let pt = assignSlot(a.currentAreaKey, a.id);
                                 a.targetX = pt.x;
                                 a.targetY = pt.y;
                             }
