@@ -230,6 +230,7 @@
         const FETCH_INTERVAL = 2000;
         const BLINK_INTERVAL = 2500;
         const BUBBLE_INTERVAL = 8000;
+        const WORK_BUBBLE_INTERVAL = 5000;  // 工作中气泡刷新更快
 
         // ─── PERSISTENT worker tracking ────────────────────────────────
         let currentGlobalState = 'idle';          // track last known global state
@@ -252,7 +253,12 @@
 
         // ─── Phaser preload ────────────────────────────────────────────
         function preload() {
-            this.load.image('office_bg', uiConfig.office_bg || '/static/office_bg.png');
+            let bgUrl = uiConfig.office_bg || '/static/office_bg.png';
+            // 如果已经是完整路径则直接使用，否则补齐 /static/ 前缀
+            if (!bgUrl.startsWith('/') && !bgUrl.startsWith('http')) {
+                bgUrl = '/static/' + bgUrl;
+            }
+            this.load.image('office_bg', bgUrl);
             SKINS.forEach(s => {
                 this.load.spritesheet(s, `/static/${s}.png`, { frameWidth: 48, frameHeight: 48 });
             });
@@ -377,19 +383,27 @@
                     a.lastBlink = time;
                 }
 
-                // Random bubble (每个 Agent 有独立的随机偏移)
-                const personalInterval = BUBBLE_INTERVAL + (a.bubbleJitter || 0);
+                // Random bubble (工作中频率更高，空闲时有随机偏移)
+                const isWorking = activeWorkerIds.has(a.id);
+                const baseInterval = isWorking ? WORK_BUBBLE_INTERVAL : BUBBLE_INTERVAL;
+                const personalInterval = baseInterval + (isWorking ? 0 : (a.bubbleJitter || 0));
                 if (time - a.lastBubble > personalInterval && a.currentState) {
-                    showBubble(a);
+                    // 工作中：显示随机工作文案（detail 变化时会由 fetchStatus 主动推送）
+                    if (isWorking && a.lastDetail) {
+                        showBubble(a, a.lastDetail);
+                    } else {
+                        showBubble(a);
+                    }
                     a.lastBubble = time;
-                    a.bubbleJitter = Math.floor(Math.random() * 6000) - 3000;  // 每次刷新偏移
+                    if (!isWorking) a.bubbleJitter = Math.floor(Math.random() * 6000) - 3000;
                 }
 
                 // Movement
                 moveAgent(a, time);
 
-                // Nametag follows sprite
+                // Nametag 和气泡都跟随 sprite 移动
                 a.nametag.setPosition(a.sprite.x, a.sprite.y + 30);
+                if (a.bubble) a.bubble.setPosition(a.sprite.x, a.sprite.y - 45);
             });
         }
 
@@ -463,12 +477,16 @@
                             a.targetX = pt.x;
                             a.targetY = pt.y;
 
-                            let texts = uiConfig.bubbles && uiConfig.bubbles[agentState] || ['努力打工中...'];
-                            // 每个Agent的气泡出现时间随机错开 0~3秒
-                            setTimeout(() => showBubble(a, texts[Math.floor(Math.random() * texts.length)]), Math.random() * 3000);
+                            // 开始工作时，优先显示 detail，其次随机文案
+                            let startDetail = backendActive[a.id]?.detail || '';
+                            a.lastDetail = startDetail;
+                            let startText = startDetail || (uiConfig.bubbles && uiConfig.bubbles[agentState] || ['努力打工中...'])[Math.floor(Math.random() * ((uiConfig.bubbles && uiConfig.bubbles[agentState] || ['努力打工中...']).length))];
+                            setTimeout(() => showBubble(a, startText), Math.random() * 3000);
+
                         } else if (!nowWorking && wasWorking) {
                             // Agent just stopped working → return to idle
                             a.currentState = 'idle';
+                            a.lastDetail = '';
                             let idleAreas = ['slacking', 'coffee'];
                             a.currentAreaKey = idleAreas[Math.floor(Math.random() * idleAreas.length)];
                             let pt = randomPtInArea(a.currentAreaKey);
@@ -476,6 +494,7 @@
                             a.targetY = pt.y;
                             // 每个 Agent 下班气泡随机错开 0~4秒
                             setTimeout(() => showBubble(a, '终于忙完了~'), Math.random() * 4000);
+
                         } else if (nowWorking && wasWorking) {
                             // Agent still working — check if state changed (e.g. executing → researching)
                             let agentState = normalizeState(backendActive[a.id]?.state || globalState);
@@ -492,9 +511,15 @@
                                 a.targetY = pt.y;
                             }
                         }
-                        // If still working, optionally update bubble on detail change
-                        if (nowWorking && a.lastDetail !== (backendActive[a.id]?.detail || '')) {
-                            a.lastDetail = backendActive[a.id]?.detail || '';
+
+                        // ✨ 核心改动：detail 变化时立即弹出新气泡显示工作进展
+                        if (nowWorking) {
+                            let newDetail = backendActive[a.id]?.detail || '';
+                            if (newDetail && newDetail !== a.lastDetail) {
+                                a.lastDetail = newDetail;
+                                a.lastBubble = game.time.now;  // 重置气泡计时器
+                                showBubble(a, newDetail);
+                            }
                         }
                     });
 
@@ -555,17 +580,28 @@
                 a.disableRandomWander = game.time.now + 10000;
             }
 
-            const bg = game.add.rectangle(a.sprite.x, a.sprite.y - 45, text.length * 14 + 20, 28, 0xffffff, 0.95);
-            bg.setStrokeStyle(2, 0x000000);
-            const txt = game.add.text(a.sprite.x, a.sprite.y - 45, text, {
-                font: '12px monospace', fill: '#000', align: 'center'
+            // 超长文字截断显示（最多 18 个字符）
+            const displayText = text.length > 18 ? text.substring(0, 17) + '…' : text;
+            // 工作中气泡用彩色背景（浅蓝），空闲时白色
+            const isWorking = activeWorkerIds.has(a.id);
+            const bgColor = isWorking ? 0xdbeafe : 0xffffff;
+            const strokeColor = isWorking ? 0x3b82f6 : 0x000000;
+            const textColor = isWorking ? '#1e3a8a' : '#000';
+            // 气泡内容坐标相对于 container 原点(0,0)，container 本身跟随 sprite
+            const bg = game.add.rectangle(0, 0, displayText.length * 8 + 28, 26, bgColor, 0.95);
+            bg.setStrokeStyle(isWorking ? 2 : 1.5, strokeColor);
+            const txt = game.add.text(0, 0, displayText, {
+                font: '11px monospace', fill: textColor, align: 'center'
             }).setOrigin(0.5);
-            a.bubble = game.add.container(0, 0, [bg, txt]);
+            // container 放在 sprite 头顶，之后每帧由 update 更新位置
+            a.bubble = game.add.container(a.sprite.x, a.sprite.y - 45, [bg, txt]);
             a.bubble.setDepth(100);
 
+            // 工作气泡停留更长（4.5秒），空闲气泡3秒
+            const bubbleDuration = activeWorkerIds.has(a.id) ? 4500 : 3000;
             a.bubbleTimeout = setTimeout(() => {
                 if (a.bubble) { a.bubble.destroy(); a.bubble = null; }
-            }, 3000);
+            }, bubbleDuration);
         }
 
         // ─── Bootstrap ─────────────────────────────────────────────────

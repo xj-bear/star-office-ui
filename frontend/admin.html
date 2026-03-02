@@ -629,7 +629,7 @@
             }
             const file = fileInput.files[0];
             const formData = new FormData();
-            formData.append('image', file);
+            formData.append('file', file);
             formData.append('filename', 'office_bg_' + Date.now() + '.png');
 
             try {
@@ -638,9 +638,9 @@
                     body: formData
                 });
                 const result = await response.json();
-                if (result.success) {
-                    config.office_bg = result.filename;
-                    document.getElementById('map-preview').src = `/static/${result.filename}`;
+                if (result.status === 'success') {
+                    config.office_bg = result.url;
+                    document.getElementById('map-preview').src = result.url;
                     showToast("背景上传成功！请点击最后保存应用。");
                 }
             } catch (error) {
