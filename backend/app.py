@@ -6,15 +6,28 @@ import werkzeug.utils
 from datetime import datetime
 import json
 import os
+from PIL import Image
 
 # Paths
 ROOT_DIR = "/home/jason/.openclaw/workspace/star-office-ui"
 FRONTEND_DIR = os.path.join(ROOT_DIR, "frontend")
-STATIC_DIR = os.path.join(ROOT_DIR, "frontend")  # Using frontend as static
+STATIC_DIR = os.path.join(FRONTEND_DIR, "static")  # Explicitly use static folder
 STATE_FILE = os.path.join(ROOT_DIR, "state.json")
 CONFIG_FILE = os.path.join(ROOT_DIR, "config.json")
 
-app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path="/static")
+# Ensure static dir exists
+if not os.path.exists(STATIC_DIR):
+    os.makedirs(STATIC_DIR, exist_ok=True)
+
+app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path="")
+# Manual route for /static files: prefer frontend/static/, fallback to frontend/ root (skin PNGs)
+@app.route('/static/<path:filename>')
+def custom_static(filename):
+    static_path = os.path.join(STATIC_DIR, filename)
+    if os.path.exists(static_path):
+        return send_from_directory(STATIC_DIR, filename)
+    # Fallback: serve from frontend root (e.g. skin spritesheets like lobster.png)
+    return send_from_directory(FRONTEND_DIR, filename)
 
 # Default state
 DEFAULT_STATE = {
@@ -148,9 +161,20 @@ def upload_image():
         timestamp = int(datetime.now().timestamp())
         new_filename = f"{timestamp}_{filename}"
         filepath = os.path.join(STATIC_DIR, new_filename)
-        file.save(filepath)
+
+        # Resize image to fit within 1200×900 to prevent display scaling issues
+        MAX_W, MAX_H = 1200, 900
+        try:
+            img = Image.open(file)
+            img.thumbnail((MAX_W, MAX_H), Image.LANCZOS)
+            img.save(filepath)
+        except Exception:
+            # Fallback: save as-is if Pillow fails
+            file.seek(0)
+            file.save(filepath)
+
         return jsonify({
-            "status": "success", 
+            "status": "success",
             "url": f"/static/{new_filename}",
             "filename": new_filename
         })
