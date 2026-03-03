@@ -58,38 +58,49 @@ def load_state():
     if not isinstance(state, dict):
         state = dict(DEFAULT_STATE)
 
-    # Auto-idle: only force idle if NO agents are actively working
+    # Auto-idle: 只有在 active_agents 内的记录超时后才清除
     try:
-        ttl = int(state.get("ttl_seconds", 25))
-        updated_at = state.get("updated_at")
-        s = state.get("state", "idle")
+        now_dt = datetime.now()
         active = state.get("active_agents", {})
-        working_states = {"writing", "researching", "executing", "editing"}
-        
-        # If there are active agents, DON'T auto-idle — show the active agent's state
+        still_active = {}
+        for aid, info in active.items():
+            try:
+                dt_str = info.get("updated_at", "2000-01-01").replace("Z", "+00:00")
+                adt = datetime.fromisoformat(dt_str)
+                if adt.tzinfo:
+                    from datetime import timezone
+                    age = (datetime.now(timezone.utc) - adt.astimezone(timezone.utc)).total_seconds()
+                else:
+                    age = (now_dt - adt).total_seconds()
+                # 300秒（5 分钟）无任何新信号才从 active 列表移除
+                if age <= 300:
+                    still_active[aid] = info
+                else:
+                    print(f"[AUTO-IDLE] {aid} 超时未更新 ({age:.0f}s)，移出 active")
+            except Exception:
+                still_active[aid] = info  # 解析失败时保留
+
+        # 只有当実际有变化时才更新 state（减少不必要的写入）
+        if len(still_active) != len(active):
+            state["active_agents"] = still_active
+            active = still_active
+            # 如果所有 agent 都清除，则设全局状态为 idle
+            if not still_active:
+                state["state"] = "idle"
+                state["detail"] = "待命中"
+                state["agent_id"] = "main"
+                state["updated_at"] = now_dt.isoformat()
+                try:
+                    save_state(state)
+                except Exception:
+                    pass
+
+        # 如果有 active agent，展示最新的那个
         if active:
             latest = max(active.items(), key=lambda x: x[1].get("updated_at", ""))
             state["state"] = latest[1].get("state", "executing")
             state["detail"] = latest[1].get("detail", "工作中...")
             state["agent_id"] = latest[0]
-        elif updated_at and s in working_states:
-            # No active agents but global state says working — auto-idle after TTL
-            dt = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
-            if dt.tzinfo:
-                from datetime import timezone
-                age = (datetime.now(timezone.utc) - dt.astimezone(timezone.utc)).total_seconds()
-            else:
-                age = (datetime.now() - dt).total_seconds()
-            if age > ttl:
-                state["state"] = "idle"
-                state["detail"] = "待命中（自动回到休息区）"
-                state["progress"] = 0
-                state["updated_at"] = datetime.now().isoformat()
-                state["active_agents"] = {}
-                try:
-                    save_state(state)
-                except Exception:
-                    pass
     except Exception:
         pass
 

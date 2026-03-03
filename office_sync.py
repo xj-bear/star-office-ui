@@ -160,10 +160,12 @@ def process_log_line(line):
 
         # ── 严格状态机 ──
         if "embedded run done" in full_msg:
-            # ★ 唯一的 idle 触发点 ★
+            # ★ 注意：embedded run done 只是一轮 LLM 响应结束，不是整个 LANE 任务结束！
+            # ★ idle 的唯一触发点是 diagnostic / lane task done
+            # ★ 这里改为 executing，表示"当前轮次处理完毕，等待下一步指令"
             duration = fields.get("durationms", fields.get("durationMs", "?"))
-            print(f"DONE  [{agent_id}] 任务完成 (耗时 {duration}ms)")
-            set_state("idle", "任务完成，休息中...", agent_id)
+            print(f"DONE  [{agent_id}] 一轮响应完成 (耗时 {duration}ms)，等待下一轮")
+            set_state("executing", "等待下一步指令...", agent_id)
 
         elif "embedded run start" in full_msg and "tool" not in full_msg and "prompt" not in full_msg and "agent" not in full_msg:
             channel = fields.get("messagechannel", fields.get("messageChannel", "?"))
